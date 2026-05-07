@@ -1,27 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Users, DollarSign, Activity, Search, Filter, Trash2 } from 'lucide-react';
 import { getRegistrations, getStats, exportToCSV, clearAll } from '../utils/storage';
 import { CURRENT_EVENT } from '../utils/constants';
 
 export default function Admin() {
-  const [registrations, setRegistrations] = useState(() => {
-    const data = getRegistrations(CURRENT_EVENT.id);
-    return data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  });
-  const [stats, setStats] = useState(() => getStats(CURRENT_EVENT.id));
+  const [registrations, setRegistrations] = useState([]);
+  const [stats, setStats] = useState({ totalRegistrations: 0, revenue: 0 });
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
 
-  const handleExport = () => {
-    exportToCSV(CURRENT_EVENT.id);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [regsData, statsData] = await Promise.all([
+        getRegistrations(CURRENT_EVENT.id),
+        getStats(CURRENT_EVENT.id)
+      ]);
+      setRegistrations(regsData);
+      setStats(statsData);
+    } catch (error) {
+      console.error("Error fetching admin data:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleClearData = () => {
+  const handleExport = async () => {
+    await exportToCSV(CURRENT_EVENT.id);
+  };
+
+  const handleClearData = async () => {
     if (window.confirm("Are you sure? This cannot be undone.") &&
         window.confirm("Final warning: Delete ALL data?")) {
-      clearAll();
-      setRegistrations([]);
-      setStats({ totalRegistrations: 0, revenue: 0 });
+      await clearAll();
+      await fetchData();
     }
   };
 
@@ -31,7 +48,7 @@ export default function Admin() {
 
   const filteredRegistrations = registrations.filter(r => {
     const matchesSearch = 
-      `${r.firstName} ${r.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${r.first_name} ${r.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.email.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategory = categoryFilter ? r.category === categoryFilter : true;
@@ -131,19 +148,19 @@ export default function Admin() {
                 ) : (
                   filteredRegistrations.map((row, i) => (
                     <tr key={row.id || i} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                      <td style={{ padding: '16px 8px', fontWeight: 600 }}>{row.firstName} {row.lastName}</td>
+                      <td style={{ padding: '16px 8px', fontWeight: 600 }}>{row.first_name} {row.last_name}</td>
                       <td style={{ padding: '16px 8px', color: 'var(--color-text-muted)' }}>{row.email}</td>
                       <td style={{ padding: '16px 8px' }}>{row.category}</td>
                       <td style={{ padding: '16px 8px', color: 'var(--color-text-muted)' }}>
-                        {new Date(row.createdAt).toLocaleDateString()}
+                        {new Date(row.created_at).toLocaleDateString()}
                       </td>
                       <td style={{ padding: '16px 8px' }}>
                         <span style={{ 
                           padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold',
-                          background: row.paymentStatus === 'PAID' ? 'rgba(57,255,20,0.1)' : 'rgba(255,107,0,0.1)',
-                          color: row.paymentStatus === 'PAID' ? 'var(--color-primary)' : 'var(--color-accent)'
+                          background: row.payment_status === 'PAID' ? 'rgba(57,255,20,0.1)' : 'rgba(255,107,0,0.1)',
+                          color: row.payment_status === 'PAID' ? 'var(--color-primary)' : 'var(--color-accent)'
                         }}>
-                          {row.paymentStatus}
+                          {row.payment_status}
                         </span>
                       </td>
                     </tr>

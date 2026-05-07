@@ -1,24 +1,30 @@
+import { supabase } from './supabaseClient';
 import { CATEGORY_TIME_RANGES } from './constants';
 
-const STORAGE_KEY = 'goda_registrations';
+const TABLE_NAME = 'registrations';
 
-export const getRegistrations = (eventId = null) => {
+export const getRegistrations = async (eventId = null) => {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    const registrations = data ? JSON.parse(data) : [];
+    let query = supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .order('created_at', { ascending: false });
     
     if (eventId) {
-      return registrations.filter(r => r.eventId === eventId);
+      query = query.eq('event_id', eventId);
     }
-    return registrations;
+    
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    return data || [];
   } catch (error) {
-    console.error('Error reading from localStorage', error);
+    console.error('Error fetching from Supabase', error);
     return [];
   }
 };
 
 const generateTime = (min, max) => {
-  // Biases toward lower values simulating a normal distribution where more serious runners finish sooner
   const bias = Math.random() * Math.random(); 
   const totalMinutes = Math.floor(min + (max - min) * bias);
   
@@ -29,16 +35,18 @@ const generateTime = (min, max) => {
   return `${hours.toString()}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-export const addRegistration = (registrationData) => {
+export const addRegistration = async (registrationData) => {
   try {
-    const registrations = getRegistrations();
-    
     // Check Duplicate Exception (1 email per event)
-    const isDuplicate = registrations.some(r => 
-      r.email === registrationData.email && r.eventId === registrationData.eventId
-    );
+    const { data: existing, error: checkError } = await supabase
+      .from(TABLE_NAME)
+      .select('id')
+      .eq('email', registrationData.email)
+      .eq('event_id', registrationData.eventId)
+      .maybeSingle();
 
-    if (isDuplicate) {
+    if (checkError) throw checkError;
+    if (existing) {
       throw new Error("Already Registered");
     }
 
@@ -49,68 +57,89 @@ export const addRegistration = (registrationData) => {
       mockFinishTime = generateTime(min, max);
     }
 
-    const newRegistration = {
-      ...registrationData,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      bib: Math.floor(1000 + Math.random() * 9000).toString(),
-      paymentStatus: 'PENDING', // Default to pending until webhook triggers in the future
-      mockFinishTime
+    const bib = Math.floor(1000 + Math.random() * 9000).toString();
+
+    const insertData = {
+      first_name: registrationData.firstName,
+      last_name: registrationData.lastName,
+      email: registrationData.email,
+      dob: registrationData.dob,
+      gender: registrationData.gender,
+      category: registrationData.category,
+      tshirt_size: registrationData.tshirtSize,
+      estimated_time: registrationData.estimatedTime,
+      price: registrationData.price,
+      event_id: registrationData.eventId,
+      event_name: registrationData.eventName,
+      bib: bib,
+      payment_status: 'PENDING',
+      mock_finish_time: mockFinishTime
     };
+
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .insert([insertData])
+      .select()
+      .single();
     
-    registrations.push(newRegistration);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(registrations));
-    return newRegistration;
+    if (error) throw error;
+    return data;
   } catch (error) {
-    console.error('Error saving to localStorage', error);
-    throw error; // Rethrow to let the UI catch duplicate specific errors
+    console.error('Error saving to Supabase', error);
+    throw error;
   }
 };
 
-export const updateRegistration = (id, updates) => {
+export const updateRegistration = async (id, updates) => {
   try {
-    const registrations = getRegistrations();
-    const index = registrations.findIndex(r => r.id === id);
-    if (index !== -1) {
-      registrations[index] = { ...registrations[index], ...updates };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(registrations));
-      return true;
-    }
-    return false;
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return !!data;
   } catch (error) {
-    console.error('Error updating localStorage', error);
+    console.error('Error updating Supabase', error);
     return false;
   }
 };
 
-export const clearAll = () => {
+export const clearAll = async () => {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    // WARNING: This is destructive. In Supabase we'd typically delete everything or use a RPC.
+    // For simplicity, we'll just delete all rows.
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all where id is not dummy
+
+    if (error) throw error;
   } catch (error) {
-    console.error('Error clearing localStorage', error);
+    console.error('Error clearing Supabase', error);
   }
 };
 
-export const exportToCSV = (eventId) => {
-  const data = getRegistrations(eventId);
+export const exportToCSV = async (eventId) => {
+  const data = await getRegistrations(eventId);
   if (data.length === 0) {
     alert("No data available to export.");
     return;
   }
 
-  // Proper Headers
   const headers = ["Name", "Email", "Category", "Bib Number", "Finish Time", "Event ID", "Payment Status", "Created At"];
   
-  // Clean Row Mapping
   const rows = data.map(r => [
-    `"${r.firstName} ${r.lastName}"`,
+    `"${r.first_name} ${r.last_name}"`,
     `"${r.email}"`,
     `"${r.category}"`,
     `"${r.bib}"`,
-    `"${r.mockFinishTime}"`,
-    `"${r.eventId}"`,
-    `"${r.paymentStatus}"`,
-    `"${new Date(r.createdAt).toLocaleString()}"`
+    `"${r.mock_finish_time}"`,
+    `"${r.event_id}"`,
+    `"${r.payment_status}"`,
+    `"${new Date(r.created_at).toLocaleString()}"`
   ]);
 
   const csvContent = "data:text/csv;charset=utf-8," 
@@ -126,16 +155,15 @@ export const exportToCSV = (eventId) => {
   document.body.removeChild(link);
 };
 
-export const getStats = (eventId = null) => {
-  const registrations = getRegistrations(eventId);
+export const getStats = async (eventId = null) => {
+  const registrations = await getRegistrations(eventId);
   
   const totalRegistrations = registrations.length;
-  // Make sure we calculate revenue for both PENDING and PAID but in real life maybe isolate PAID.
-  // Assuming a full system we just sum everything attached to price.
-  const revenue = registrations.reduce((sum, r) => sum + (r.price || 0), 0);
+  const revenue = registrations.reduce((sum, r) => sum + (parseFloat(r.price) || 0), 0);
   
   return {
     totalRegistrations,
     revenue
   };
 };
+

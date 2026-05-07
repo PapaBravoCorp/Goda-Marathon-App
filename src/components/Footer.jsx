@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { Activity, Check } from 'lucide-react';
 import { FaTwitter, FaInstagram, FaFacebook } from 'react-icons/fa';
 
 export default function Footer() {
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    setIsSubscribed(true);
+    setTimeout(() => setIsSubscribed(false), 5000); // Options to reset it or keep it subscribed
+  };
   return (
     <footer className="footer">
       <div className="container">
@@ -47,9 +54,20 @@ export default function Footer() {
           <div>
             <h4 className="footer-title">Newsletter</h4>
             <p className="text-muted" style={{ marginBottom: '16px' }}>Stay updated with the latest race news.</p>
-            <form className="flex gap-sm" onSubmit={(e) => e.preventDefault()}>
-              <input type="email" placeholder="Your email address" style={{ flex: 1 }} />
-              <button type="submit" className="btn btn-primary" style={{ padding: '12px 20px' }}>Join</button>
+            <form className="flex gap-sm" onSubmit={handleSubscribe}>
+              <input type="email" placeholder="Your email address" style={{ flex: 1 }} required disabled={isSubscribed} />
+              <button 
+                type="submit" 
+                className="btn btn-primary flex items-center justify-center transition-all" 
+                style={{ 
+                  padding: '12px 20px', 
+                  backgroundColor: isSubscribed ? '#10b981' : 'var(--color-primary)',
+                  boxShadow: isSubscribed ? '0 0 25px rgba(16,185,129,0.6)' : undefined
+                }}
+                disabled={isSubscribed}
+              >
+                {isSubscribed ? <><Check size={18} style={{ marginRight: '8px' }} /> Subscribed!</> : 'Join'}
+              </button>
             </form>
           </div>
         </div>

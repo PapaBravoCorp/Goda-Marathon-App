@@ -40,6 +40,8 @@ export default function Register() {
   const isStep2Valid = formData.category && formData.tshirtSize;
   const isStep3Valid = paymentData.cardNumber && paymentData.expiry && paymentData.cvc;
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleNext = (e) => {
     e.preventDefault();
     if (step === 1 && !isStep1Valid) return;
@@ -47,7 +49,7 @@ export default function Register() {
     setStep(step + 1);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     if (!isStep3Valid) return;
@@ -62,8 +64,9 @@ export default function Register() {
       eventName: CURRENT_EVENT.name
     };
 
+    setIsSubmitting(true);
     try {
-      const saved = addRegistration(finalRegistrationData);
+      const saved = await addRegistration(finalRegistrationData);
       if (saved) {
         setStep(4);
       }
@@ -73,6 +76,8 @@ export default function Register() {
       } else {
         setErrorMsg("An unexpected error occurred during registration. Please try again.");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -230,8 +235,8 @@ export default function Register() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Button type="button" variant="outline" onClick={() => setStep(2)}>Back</Button>
-                <Button type="submit" variant={isStep3Valid ? "primary" : "outline"} disabled={!isStep3Valid}>
-                  Pay {formatCurrency(calculateTotal())}
+                <Button type="submit" variant={isStep3Valid && !isSubmitting ? "primary" : "outline"} disabled={!isStep3Valid || isSubmitting}>
+                  {isSubmitting ? "Processing..." : `Pay ${formatCurrency(calculateTotal())}`}
                 </Button>
               </div>
             </form>

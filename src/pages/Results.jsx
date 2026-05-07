@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Download, Filter } from 'lucide-react';
 import { getRegistrations } from '../utils/storage';
 import { CURRENT_EVENT } from '../utils/constants';
@@ -6,49 +6,60 @@ import { CURRENT_EVENT } from '../utils/constants';
 export default function Results() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [results, setResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const [results] = useState(() => {
-    // Some mock data to keep the page looking realistic if fresh, but we will scope to the current event.
-    // Assuming mock data belongs to older event, so we ONLY show current event data if they chose to.
-    // For MVP, we will blend them so they see SOMETHING if empty, but explicitly label them.
-    const mockResults = [
-      { bib: "1001", name: "David Kiprono", mockFinishTime: "2:09:43", category: "Full Marathon" },
-      { bib: "1054", name: "Sarah Jenkins", mockFinishTime: "2:24:11", category: "Full Marathon" },
-      { bib: "8942", name: "Michael Chen", mockFinishTime: "3:45:22", category: "Full Marathon" },
-      { bib: "3321", name: "Elena Rodriguez", mockFinishTime: "1:45:10", category: "Half Marathon" },
-      { bib: "5540", name: "James Smith", mockFinishTime: "4:12:05", category: "Full Marathon" },
-    ];
+  useEffect(() => {
+    fetchResults();
+  }, []);
 
-    const storedData = getRegistrations(CURRENT_EVENT.id).map(r => ({
-      bib: r.bib,
-      name: `${r.firstName} ${r.lastName}`,
-      mockFinishTime: r.mockFinishTime || 'DNS',
-      category: r.category
-    }));
-
-    let combined = [...storedData, ...mockResults];
-
-    // Helper to convert HH:MM:SS to seconds for rigorous sorting
-    const timeToSeconds = (timeStr) => {
-      if (timeStr === 'DNS') return Infinity; // Put DNS at the bottom
-      const [h, m, s] = timeStr.split(':').map(Number);
-      return (h * 3600) + (m * 60) + (s || 0);
-    };
-
-    // 1. Sort globally (or primarily) by finish time
-    combined.sort((a, b) => timeToSeconds(a.mockFinishTime) - timeToSeconds(b.mockFinishTime));
-
-    // 2. Assign dynamic ranks exactly isolated PER CATEGORY
-    const categoryRanksTracker = {};
-    return combined.map(r => {
-      if (!categoryRanksTracker[r.category]) {
-        categoryRanksTracker[r.category] = 1;
-      }
+  const fetchResults = async () => {
+    setIsLoading(true);
+    try {
+      const storedData = await getRegistrations(CURRENT_EVENT.id);
       
-      const rank = r.mockFinishTime === 'DNS' ? '-' : categoryRanksTracker[r.category]++;
-      return { ...r, rank };
-    });
-  });
+      const mappedData = storedData.map(r => ({
+        bib: r.bib,
+        name: `${r.first_name} ${r.last_name}`,
+        mockFinishTime: r.mock_finish_time || 'DNS',
+        category: r.category
+      }));
+
+      // Some mock data to keep the page looking realistic
+      const mockResults = [
+        { bib: "1001", name: "David Kiprono", mockFinishTime: "2:09:43", category: "Full Marathon" },
+        { bib: "1054", name: "Sarah Jenkins", mockFinishTime: "2:24:11", category: "Full Marathon" },
+        { bib: "8942", name: "Michael Chen", mockFinishTime: "3:45:22", category: "Full Marathon" },
+        { bib: "3321", name: "Elena Rodriguez", mockFinishTime: "1:45:10", category: "Half Marathon" },
+        { bib: "5540", name: "James Smith", mockFinishTime: "4:12:05", category: "Full Marathon" },
+      ];
+
+      let combined = [...mappedData, ...mockResults];
+
+      const timeToSeconds = (timeStr) => {
+        if (timeStr === 'DNS') return Infinity;
+        const [h, m, s] = timeStr.split(':').map(Number);
+        return (h * 3600) + (m * 60) + (s || 0);
+      };
+
+      combined.sort((a, b) => timeToSeconds(a.mockFinishTime) - timeToSeconds(b.mockFinishTime));
+
+      const categoryRanksTracker = {};
+      const rankedResults = combined.map(r => {
+        if (!categoryRanksTracker[r.category]) {
+          categoryRanksTracker[r.category] = 1;
+        }
+        const rank = r.mockFinishTime === 'DNS' ? '-' : categoryRanksTracker[r.category]++;
+        return { ...r, rank };
+      });
+
+      setResults(rankedResults);
+    } catch (error) {
+      console.error("Error fetching results:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filtered = results.filter(r => {
     const matchesSearch = 
