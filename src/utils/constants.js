@@ -5,6 +5,13 @@ export const CATEGORY_PRICING = {
   "Full Marathon": 1599
 };
 
+export const CATEGORY_RULES = {
+  "5K Run": { minAge: 5 },
+  "10K Run": { minAge: 12 },
+  "Half Marathon": { minAge: 18 },
+  "Full Marathon": { minAge: 18 }
+};
+
 export const CURRENT_EVENT = {
   id: "goda-2026",
   name: "GODA Epic Trail Run 2026"
@@ -16,3 +23,15 @@ export const CATEGORY_TIME_RANGES = {
   "Half Marathon": { min: 90, max: 180 },
   "Full Marathon": { min: 180, max: 360 }
 };
+
+export const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", 
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", 
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", 
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", 
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", 
+  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", 
+  "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+];
+

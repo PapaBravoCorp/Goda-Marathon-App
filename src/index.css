@@ -256,6 +256,14 @@ label {
   cursor: pointer;
   border: none;
   text-decoration: none;
+  padding: 12px 24px; /* 1.5rem horizontal padding */
+  width: 100%; /* Full width on mobile for easier tapping */
+}
+
+@media (min-width: 768px) {
+  .btn {
+    width: auto; /* Natural width on tablet/desktop */
+  }
 }
 .btn:hover {
   transform: translateY(-2px);
