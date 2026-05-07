@@ -8,15 +8,15 @@ export default function EventDetails() {
       <div className="hero" style={{ minHeight: '50vh', background: 'url(/images/trail_hero.png) center/cover' }}>
         <div className="hero-overlay"></div>
         <div className="container" style={{ position: 'relative', paddingTop: '80px' }}>
-          <h1 style={{ fontSize: '4rem', marginBottom: '16px' }}>Goda Epic <span className="accent-text">Trail</span></h1>
+          <h1 style={{ marginBottom: '16px' }}>Goda Epic <span className="accent-text">Trail</span></h1>
           <p className="text-muted" style={{ fontSize: '1.25rem', maxWidth: '600px' }}>Join us on the 9th August 2026 for the 3rd Edition of Goda Trail Run, hosted in the scenic Gangapur Backwaters, Nashik.</p>
         </div>
       </div>
 
       <section className="section">
-        <div className="container flex" style={{ gap: '60px' }}>
+        <div className="container event-layout">
           {/* Main Content */}
-          <div style={{ flex: 2 }}>
+          <div className="event-main">
             <h2 style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: '16px', marginBottom: '32px' }}>Race Information</h2>
             
             <div className="glass" style={{ padding: '32px', borderRadius: '16px', marginBottom: '40px' }}>
@@ -105,8 +105,8 @@ export default function EventDetails() {
           </div>
 
           {/* Sidebar */}
-          <div style={{ flex: 1 }}>
-            <div style={{ position: 'sticky', top: '100px' }}>
+          <div className="event-sidebar">
+            <div className="event-sidebar-inner">
               <div className="card" style={{ padding: '32px', borderTop: '4px solid var(--color-primary)' }}>
                 <h3 style={{ marginBottom: '24px' }}>Register Now</h3>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>

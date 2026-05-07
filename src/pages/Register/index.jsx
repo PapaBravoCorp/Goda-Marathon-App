@@ -234,7 +234,7 @@ export default function Register() {
   const calculateTotal = () => CATEGORY_PRICING[formData.category] || 0;
 
   return (
-    <div className="min-h-[80vh] flex items-center py-12">
+    <div className="min-h-[80dvh] flex items-center py-12 mt-16 md:mt-20">
       <div className="container max-w-3xl mx-auto px-4">
         
         {step < 4 && (

@@ -54,13 +54,16 @@ export default function Footer() {
           <div>
             <h4 className="footer-title">Newsletter</h4>
             <p className="text-muted" style={{ marginBottom: '16px' }}>Stay updated with the latest race news.</p>
-            <form className="flex gap-sm" onSubmit={handleSubscribe}>
-              <input type="email" placeholder="Your email address" style={{ flex: 1 }} required disabled={isSubscribed} />
+            <form className="flex gap-sm" style={{ flexWrap: 'wrap' }} onSubmit={handleSubscribe}>
+              <input type="email" placeholder="Your email address" style={{ flex: '1 1 0', minWidth: '0' }} required disabled={isSubscribed} />
               <button 
                 type="submit" 
                 className="btn btn-primary flex items-center justify-center transition-all" 
                 style={{ 
-                  padding: '12px 20px', 
+                  padding: '12px 20px',
+                  width: 'auto',
+                  flex: '0 0 auto',
+                  whiteSpace: 'nowrap',
                   backgroundColor: isSubscribed ? '#10b981' : 'var(--color-primary)',
                   boxShadow: isSubscribed ? '0 0 25px rgba(16,185,129,0.6)' : undefined
                 }}

@@ -35,12 +35,12 @@ export default function Home() {
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-muted" style={{ fontSize: '1.25rem', maxWidth: '600px', marginBottom: '40px' }}>
             Push past your limits at the Goda Epic Trail Run 2026. Join us for the ultimate test of endurance, spirit, and connection with nature in the scenic Gangapur Backwaters.
           </motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex gap-md" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Link to="/register"><Button variant="primary" style={{ fontSize: '1.125rem', padding: '16px 40px' }}>Register Now</Button></Link>
-            <Link to="/past-events"><Button variant="outline" style={{ fontSize: '1.125rem', padding: '16px 40px' }}>View Past Events</Button></Link>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0 justify-center">
+            <Link to="/register" className="w-full sm:w-auto"><Button variant="primary" style={{ fontSize: '1.125rem', padding: '16px 40px', width: '100%' }}>Register Now</Button></Link>
+            <Link to="/past-events" className="w-full sm:w-auto"><Button variant="outline" style={{ fontSize: '1.125rem', padding: '16px 40px', width: '100%' }}>View Past Events</Button></Link>
           </motion.div>
           
-          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="glass" style={{ marginTop: '60px', padding: '24px', borderRadius: '16px', display: 'flex', gap: '40px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="glass flex flex-col md:flex-row gap-8 md:gap-10 justify-center items-center w-full max-w-4xl" style={{ marginTop: '60px', padding: '24px', borderRadius: '16px' }}>
             <div className="text-center">
               <div className="flex items-center justify-center gap-sm text-primary mb-sm">
                 <Calendar size={24} /> <span style={{ fontWeight: 600 }}>Date</span>
@@ -48,14 +48,14 @@ export default function Home() {
               <p style={{ fontWeight: 800, fontSize: '1.2rem', margin: 0 }}>AUG 09, 2026</p>
               <CountdownTimer targetDate="2026-08-09T00:00:00" />
             </div>
-            <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }}></div>
+            <div className="hidden md:block" style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }}></div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-sm text-primary mb-sm">
                 <MapPin size={24} /> <span style={{ fontWeight: 600 }}>Location</span>
               </div>
               <p style={{ fontWeight: 800, fontSize: '1.2rem' }}>GIRNARE, NASHIK</p>
             </div>
-            <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }}></div>
+            <div className="hidden md:block" style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.1)' }}></div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-sm text-primary mb-sm">
                 <Users size={24} /> <span style={{ fontWeight: 600 }}>Categories</span>
@@ -69,7 +69,7 @@ export default function Home() {
       {/* Stats Section */}
       <section className="section" style={{ backgroundColor: '#050505' }}>
         <motion.div variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true }} className="container">
-          <div className="grid grid-cols-4 gap-lg text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-lg text-center">
             <div>
               <h2 className="text-primary">3rd</h2>
               <p className="text-muted">Edition</p>
@@ -98,7 +98,7 @@ export default function Home() {
             <p className="text-muted" style={{ maxWidth: '600px', margin: '0 auto' }}>Choose your challenge. Whether you're a beginner or elite athlete, we have a route designed for your journey.</p>
           </motion.div>
           
-          <div className="grid grid-cols-3 gap-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
             {/* 5KM */}
             <motion.div variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
               <Card 
@@ -199,7 +199,7 @@ export default function Home() {
       {/* Why Join Section */}
       <section className="section" style={{ backgroundColor: '#0A0A0A', borderTop: '1px solid var(--color-border)' }}>
         <div className="container">
-          <motion.div variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid grid-cols-2 gap-xl items-center">
+          <motion.div variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid grid-cols-1 md:grid-cols-2 gap-xl items-center">
             <div>
               <img src="/images/trail_event2.png" alt="Runner celebrating" style={{ width: '100%', borderRadius: 'var(--radius-lg)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} />
             </div>
