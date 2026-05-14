@@ -1,0 +1,463 @@
+/* ========================================
+   Past Events Page
+   ======================================== */
+.past-events-page {
+  background: var(--color-bg-base);
+  min-height: 100vh;
+}
+
+/* Hero Section */
+.pe-hero {
+  position: relative;
+  min-height: 50vh;
+  min-height: 50dvh;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 4rem 1rem 3rem;
+  overflow: hidden;
+}
+
+.pe-hero-bg {
+  position: absolute;
+  inset: 0;
+  background: url('/images/trail_hero.png') center/cover no-repeat;
+  z-index: 0;
+}
+
+.pe-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(11, 11, 11, 0.3) 0%,
+    rgba(11, 11, 11, 0.7) 50%,
+    rgba(11, 11, 11, 1) 100%
+  );
+  z-index: 1;
+}
+
+.pe-hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 700px;
+}
+
+.pe-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(57, 255, 20, 0.08);
+  border: 1px solid rgba(57, 255, 20, 0.25);
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1.25rem;
+}
+
+.pe-hero-title {
+  font-size: clamp(2rem, 7vw, 4rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+.pe-hero-subtitle {
+  color: var(--color-text-muted);
+  font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+  max-width: 550px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Year Navigation Pills */
+.pe-year-nav {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem 1rem;
+  flex-wrap: wrap;
+}
+
+.pe-year-pill {
+  padding: 10px 24px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 44px;
+  font-family: var(--font-family);
+}
+
+.pe-year-pill:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.pe-year-pill.active {
+  background: var(--color-primary);
+  color: #000;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
+}
+
+/* Event Section */
+.pe-event-section {
+  padding: 2rem 0 4rem;
+}
+
+.pe-event-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.pe-event-title {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  margin-bottom: 1.5rem;
+}
+
+.pe-event-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.pe-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.pe-stat svg {
+  color: var(--color-primary);
+}
+
+/* Section Titles */
+.pe-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.pe-section-title svg {
+  color: var(--color-primary);
+}
+
+/* ========================================
+   Masonry Gallery
+   ======================================== */
+.pe-gallery {
+  columns: 2;
+  column-gap: 12px;
+  margin-bottom: 3rem;
+}
+
+.pe-gallery-item {
+  break-inside: avoid;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pe-gallery-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(57, 255, 20, 0.15);
+}
+
+.pe-gallery-item img {
+  width: 100%;
+  display: block;
+  transition: transform 0.5s ease;
+}
+
+.pe-gallery-item:hover img {
+  transform: scale(1.05);
+}
+
+.pe-gallery-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2rem 1rem 1rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.pe-gallery-item:hover .pe-gallery-caption {
+  opacity: 1;
+}
+
+/* ========================================
+   Video Cards
+   ======================================== */
+.pe-videos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.pe-video-card {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-bg-surface);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pe-video-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(57, 255, 20, 0.1);
+}
+
+.pe-video-wrapper {
+  position: relative;
+  padding-top: 56.25%; /* 16:9 */
+  background: #000;
+}
+
+.pe-video-wrapper iframe,
+.pe-video-wrapper video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.pe-video-caption {
+  padding: 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* ========================================
+   Lightbox Modal
+   ======================================== */
+.pe-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.25s ease;
+}
+
+.pe-lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pe-lightbox-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.pe-lightbox-caption {
+  margin-top: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.pe-lightbox-close {
+  position: absolute;
+  top: -48px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.pe-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.pe-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.pe-lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.pe-lightbox-prev {
+  left: -60px;
+}
+
+.pe-lightbox-next {
+  right: -60px;
+}
+
+/* ========================================
+   Empty State / Fallback
+   ======================================== */
+.pe-empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--color-text-muted);
+}
+
+.pe-empty-state svg {
+  margin-bottom: 1rem;
+  opacity: 0.4;
+}
+
+.pe-empty-state p {
+  font-size: 1.1rem;
+}
+
+/* ========================================
+   Static Fallback Gallery (when no DB media)
+   ======================================== */
+.pe-fallback-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.pe-fallback-card {
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.pe-fallback-card:hover {
+  transform: translateY(-4px);
+}
+
+.pe-fallback-card img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  display: block;
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pe-fade-in {
+  animation: fadeIn 0.5s ease;
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+@media (min-width: 640px) {
+  .pe-gallery {
+    columns: 3;
+    column-gap: 16px;
+  }
+
+  .pe-gallery-item {
+    margin-bottom: 16px;
+  }
+
+  .pe-videos-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pe-gallery {
+    columns: 4;
+  }
+
+  .pe-videos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 639px) {
+  .pe-hero {
+    min-height: 40vh;
+    padding: 6rem 1rem 2rem;
+  }
+
+  .pe-lightbox-prev {
+    left: 4px;
+  }
+
+  .pe-lightbox-next {
+    right: 4px;
+  }
+
+  .pe-lightbox-nav {
+    width: 40px;
+    height: 40px;
+  }
+
+  .pe-lightbox-close {
+    top: -44px;
+  }
+
+  .pe-event-stats {
+    gap: 1rem;
+  }
+}
