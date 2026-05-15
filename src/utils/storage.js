@@ -256,4 +256,56 @@ export const deletePastEventMedia = async (id) => {
   }
 };
 
+// ============================================================
+// Events
+// ============================================================
+const EVENTS_TABLE = 'events';
 
+export const getCurrentEvent = async () => {
+  try {
+    const { data, error } = await supabase
+      .from(EVENTS_TABLE)
+      .select('*')
+      .eq('is_current', true)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching current event', error);
+    return null;
+  }
+};
+
+export const getEventById = async (id) => {
+  try {
+    const { data, error } = await supabase
+      .from(EVENTS_TABLE)
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching event', error);
+    return null;
+  }
+};
+
+export const updateEvent = async (id, updates) => {
+  try {
+    const { data, error } = await supabase
+      .from(EVENTS_TABLE)
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating event', error);
+    throw error;
+  }
+};

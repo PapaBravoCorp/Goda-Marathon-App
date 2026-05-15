@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Users, IndianRupee, Activity, Search, Filter, Trash2, Lock, LogOut, Eye, EyeOff, ShieldCheck, RefreshCw, Image, Video, Plus, X } from 'lucide-react';
-import { getRegistrations, getStats, exportToCSV, clearAll, getPastEventMedia, addPastEventMedia, deletePastEventMedia } from '../utils/storage';
+import { Download, Users, IndianRupee, Activity, Search, Filter, Trash2, Lock, LogOut, Eye, EyeOff, ShieldCheck, RefreshCw, Image, Video, Plus, X, Settings, Save, CheckCircle } from 'lucide-react';
+import { getRegistrations, getStats, exportToCSV, clearAll, getPastEventMedia, addPastEventMedia, deletePastEventMedia, getCurrentEvent, updateEvent } from '../utils/storage';
 import { CURRENT_EVENT } from '../utils/constants';
 import './Admin.css';
 
@@ -254,6 +254,139 @@ function MediaManager() {
   );
 }
 
+// ─── Event Settings Tab ──────────────────────────────────────────
+function EventSettings() {
+  const [eventData, setEventData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+
+  useEffect(() => {
+    loadEvent();
+  }, []);
+
+  const loadEvent = async () => {
+    setIsLoading(true);
+    const data = await getCurrentEvent();
+    setEventData(data);
+    setIsLoading(false);
+  };
+
+  const handleInput = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEventData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setSaveMsg('');
+  };
+
+  const handleSave = async () => {
+    if (!eventData) return;
+    setIsSaving(true);
+    setSaveMsg('');
+    try {
+      await updateEvent(eventData.id, {
+        name: eventData.name,
+        date: eventData.date,
+        location: eventData.location,
+        venue: eventData.venue,
+        description: eventData.description,
+        flag_off_time: eventData.flag_off_time,
+        registration_open: eventData.registration_open,
+        edition: eventData.edition,
+        hero_image: eventData.hero_image,
+      });
+      setSaveMsg('Event settings saved successfully!');
+    } catch (err) {
+      setSaveMsg('Failed to save. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="admin-empty-state">Loading event settings...</div>;
+  }
+
+  if (!eventData) {
+    return (
+      <div className="admin-empty-state" style={{ padding: '3rem 1rem' }}>
+        <p>No event found in the database. Please seed the events table first.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="admin-media-header">
+        <h3 style={{ margin: 0 }}>Event Settings</h3>
+        <button className="btn btn-primary admin-action-btn" onClick={handleSave} disabled={isSaving} style={{ gap: '6px' }}>
+          {isSaving ? <RefreshCw size={18} className="spin" /> : <Save size={18} />}
+          <span className="admin-action-label">{isSaving ? 'Saving...' : 'Save Changes'}</span>
+        </button>
+      </div>
+
+      {saveMsg && (
+        <div className={`admin-save-msg ${saveMsg.includes('success') ? 'success' : 'error'}`}>
+          <CheckCircle size={16} />
+          {saveMsg}
+        </div>
+      )}
+
+      <div className="admin-event-form glass">
+        <div className="admin-media-form-grid">
+          <div className="admin-media-form-group">
+            <label htmlFor="evt-name">Event Name</label>
+            <input id="evt-name" name="name" value={eventData.name || ''} onChange={handleInput} />
+          </div>
+          <div className="admin-media-form-group">
+            <label htmlFor="evt-edition">Edition</label>
+            <input id="evt-edition" name="edition" value={eventData.edition || ''} onChange={handleInput} placeholder="e.g. 3rd" />
+          </div>
+          <div className="admin-media-form-group">
+            <label htmlFor="evt-date">Event Date</label>
+            <input id="evt-date" name="date" type="date" value={eventData.date || ''} onChange={handleInput} />
+          </div>
+          <div className="admin-media-form-group">
+            <label htmlFor="evt-flagoff">Flag-Off Time</label>
+            <input id="evt-flagoff" name="flag_off_time" value={eventData.flag_off_time || ''} onChange={handleInput} placeholder="e.g. 06:45 AM" />
+          </div>
+          <div className="admin-media-form-group">
+            <label htmlFor="evt-location">Location</label>
+            <input id="evt-location" name="location" value={eventData.location || ''} onChange={handleInput} />
+          </div>
+          <div className="admin-media-form-group">
+            <label htmlFor="evt-venue">Venue</label>
+            <input id="evt-venue" name="venue" value={eventData.venue || ''} onChange={handleInput} />
+          </div>
+        </div>
+
+        <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
+          <label htmlFor="evt-hero">Hero Image URL</label>
+          <input id="evt-hero" name="hero_image" value={eventData.hero_image || ''} onChange={handleInput} placeholder="/images/trail_hero.png" />
+        </div>
+
+        <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
+          <label htmlFor="evt-desc">Description</label>
+          <textarea id="evt-desc" name="description" value={eventData.description || ''} onChange={handleInput} rows={3} style={{ resize: 'vertical' }} />
+        </div>
+
+        <div className="admin-event-toggle" style={{ marginTop: '1rem' }}>
+          <label className="admin-toggle-label">
+            <input
+              type="checkbox"
+              name="registration_open"
+              checked={eventData.registration_open || false}
+              onChange={handleInput}
+              className="admin-toggle-checkbox"
+            />
+            <span className="admin-toggle-switch"></span>
+            <span>Registration {eventData.registration_open ? 'Open' : 'Closed'}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Admin Component ────────────────────────────────────────
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -375,7 +508,14 @@ export default function Admin() {
             onClick={() => setActiveTab('media')}
           >
             <Image size={18} />
-            Past Events Media
+            Media
+          </button>
+          <button
+            className={`admin-tab ${activeTab === 'event' ? 'active' : ''}`}
+            onClick={() => setActiveTab('event')}
+          >
+            <Settings size={18} />
+            Event Settings
           </button>
         </div>
 
@@ -529,6 +669,10 @@ export default function Admin() {
 
         {activeTab === 'media' && (
           <MediaManager />
+        )}
+
+        {activeTab === 'event' && (
+          <EventSettings />
         )}
       </div>
     </div>

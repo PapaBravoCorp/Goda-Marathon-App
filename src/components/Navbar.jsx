@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Activity, Lock, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getCurrentEvent } from '../utils/storage';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
@@ -14,6 +16,12 @@ export default function Navbar() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    getCurrentEvent().then(ev => {
+      if (ev) setRegistrationOpen(ev.registration_open);
+    });
   }, []);
 
   // Body scroll lock
@@ -54,7 +62,11 @@ export default function Navbar() {
             <Link to="/event" className={`nav-link ${location.pathname === '/event' ? 'active' : ''}`}>Event Details</Link>
             <Link to="/past-events" className={`nav-link ${location.pathname === '/past-events' ? 'active' : ''}`}>Past Events</Link>
             <Link to="/results" className={`nav-link ${location.pathname === '/results' ? 'active' : ''}`}>Results</Link>
-            <Link to="/register" className="btn btn-primary ml-4" style={{ padding: isScrolled ? '6px 20px' : '8px 24px', transition: 'all 0.3s ease' }}>Register Now</Link>
+            {registrationOpen ? (
+              <Link to="/register" className="btn btn-primary ml-4" style={{ padding: isScrolled ? '6px 20px' : '8px 24px', transition: 'all 0.3s ease' }}>Register Now</Link>
+            ) : (
+              <Link to="/event" className="btn btn-outline ml-4" style={{ padding: isScrolled ? '6px 20px' : '8px 24px', transition: 'all 0.3s ease' }}>View Event</Link>
+            )}
             <Link to="/admin" title="Admin Dashboard" style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }} className="hover:text-primary transition-colors ml-4">
               <Lock size={18} />
             </Link>
@@ -104,7 +116,11 @@ export default function Navbar() {
             </div>
 
             <div className="mt-auto mb-12 flex flex-col gap-4">
-              <Link to="/register" className="btn btn-primary w-full py-4 text-xl">Register Now</Link>
+              {registrationOpen ? (
+                <Link to="/register" className="btn btn-primary w-full py-4 text-xl">Register Now</Link>
+              ) : (
+                <Link to="/event" className="btn btn-outline w-full py-4 text-xl">View Event</Link>
+              )}
               <Link to="/admin" className="flex items-center justify-center gap-2 text-gray-400 py-4 w-full">
                 <Lock size={18} /> <span>Admin Dashboard</span>
               </Link>
