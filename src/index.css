@@ -1,11 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 
 :root {
+  /* Layout Constants */
+  --navbar-height: 80px;
+
   /* Colors */
   --color-primary: #39FF14; /* Neon Green */
   --color-primary-hover: #30df11;
@@ -58,13 +65,21 @@ body {
   word-break: break-word;
 }
 
-html { scroll-behavior: smooth; }
+html { 
+  scroll-behavior: smooth; 
+  scroll-padding-top: var(--navbar-height);
+}
 
 #root {
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  padding-top: calc(var(--navbar-height) + env(safe-area-inset-top));
 }
 
 /* Typography Utilities */
@@ -154,74 +169,6 @@ label {
 
 /* Recovered Components CSS */
 
-/* Navbar */
-.navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  transition: background-color var(--transition-normal);
-  padding: var(--spacing-sm) 0;
-}
-.nav-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1.5rem;
-  font-weight: 900;
-  text-decoration: none;
-  color: var(--color-text-main);
-  letter-spacing: -1px;
-}
-.nav-links {
-  display: none;
-  gap: var(--spacing-md);
-  align-items: center;
-}
-@media (min-width: 768px) {
-  .nav-links {
-    display: flex;
-  }
-}
-.nav-link {
-  color: var(--color-text-main);
-  text-decoration: none;
-  font-weight: 500;
-  padding: 12px 16px;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  transition: color var(--transition-fast);
-}
-.nav-link:hover, .nav-link.active {
-  color: var(--color-primary);
-}
-
-/* Mobile menu toggle button */
-.mobile-menu-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  color: var(--color-text-main);
-  cursor: pointer;
-  min-height: 44px;
-  min-width: 44px;
-  padding: 8px;
-}
-@media (min-width: 768px) {
-  .mobile-menu-btn {
-    display: none;
-  }
-}
-
 /* Hero */
 .hero {
   position: relative;
@@ -232,7 +179,7 @@ label {
   justify-content: center;
   overflow: hidden;
   padding: var(--spacing-xl) 0;
-  padding-top: 100px;
+  min-height: calc(100vh - var(--navbar-height));
 }
 .hero-bg {
   position: absolute;

@@ -70,7 +70,7 @@ export default function Results() {
   });
 
   return (
-    <div className="section" style={{ minHeight: '80vh', paddingTop: '100px' }}>
+    <div className="section" style={{ minHeight: '80vh' }}>
       <div className="container">
         <h1 className="text-center" style={{ marginBottom: '16px' }}>Race <span className="accent-text">Results</span></h1>
         <p className="text-center text-muted" style={{ marginBottom: '40px', fontSize: '1.125rem' }}>Look up official times, ranks, and download finish certificates.</p>

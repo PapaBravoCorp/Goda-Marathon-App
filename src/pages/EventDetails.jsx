@@ -99,7 +99,7 @@ export default function EventDetails() {
       {/* Hero */}
       <div className="hero" style={{ minHeight: '50vh', background: `url(${e.hero_image || '/images/trail_hero.png'}) center/cover` }}>
         <div className="hero-overlay"></div>
-        <div className="container" style={{ position: 'relative', paddingTop: '80px' }}>
+        <div className="container" style={{ position: 'relative' }}>
           <h1 style={{ marginBottom: '16px' }}>
             {e.name ? (
               <>

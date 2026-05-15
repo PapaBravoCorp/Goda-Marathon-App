@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Activity, Lock, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCurrentEvent } from '../utils/storage';
+import './Navbar.css';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -45,14 +46,11 @@ export default function Navbar() {
     <>
       <nav className="navbar" style={{ 
         background: isScrolled ? 'rgba(11, 11, 11, 0.95)' : 'rgba(11, 11, 11, 0.5)',
-        padding: isScrolled ? '12px 0' : '24px 0',
         backdropFilter: 'blur(12px)',
         borderBottom: isScrolled ? '1px solid rgba(57,255,20,0.2)' : '1px solid transparent',
-        transition: 'all 0.3s ease',
-        zIndex: 1000
       }}>
         <div className="container nav-container flex items-center justify-between">
-          <Link to="/" className="brand" style={{ transform: isScrolled ? 'scale(0.9)' : 'scale(1)', transition: 'transform 0.3s ease' }}>
+          <Link to="/" className="brand">
             <Activity color="#39FF14" size={28} />
             <span>GODA<span className="text-primary">.</span></span>
           </Link>
@@ -63,9 +61,9 @@ export default function Navbar() {
             <Link to="/past-events" className={`nav-link ${location.pathname === '/past-events' ? 'active' : ''}`}>Past Events</Link>
             <Link to="/results" className={`nav-link ${location.pathname === '/results' ? 'active' : ''}`}>Results</Link>
             {registrationOpen ? (
-              <Link to="/register" className="btn btn-primary ml-4" style={{ padding: isScrolled ? '6px 20px' : '8px 24px', transition: 'all 0.3s ease' }}>Register Now</Link>
+              <Link to="/register" className="btn btn-primary ml-4">Register Now</Link>
             ) : (
-              <Link to="/event" className="btn btn-outline ml-4" style={{ padding: isScrolled ? '6px 20px' : '8px 24px', transition: 'all 0.3s ease' }}>View Event</Link>
+              <Link to="/event" className="btn btn-outline ml-4">View Event</Link>
             )}
             <Link to="/admin" title="Admin Dashboard" style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }} className="hover:text-primary transition-colors ml-4">
               <Lock size={18} />
