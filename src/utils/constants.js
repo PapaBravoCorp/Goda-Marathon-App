@@ -1,3 +1,6 @@
+// ─── LEGACY FALLBACKS ────────────────────────────────────────
+// These are used ONLY when the DB (event_categories table) is empty.
+// All category data is now managed via Admin → Categories tab.
 export const CATEGORY_PRICING = {
   "5K Run": 499,
   "10K Run": 799,

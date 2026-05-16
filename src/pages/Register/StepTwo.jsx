@@ -2,9 +2,30 @@ import React from 'react';
 import { Button } from '../../components/Button';
 import { CATEGORY_PRICING, CATEGORY_RULES } from '../../utils/constants';
 
-export default function StepTwo({ formData, handleInputChange, onNext, onBack, age, formatCurrency, errorFields = {} }) {
+export default function StepTwo({ formData, handleInputChange, onNext, onBack, age, formatCurrency, errorFields = {}, dbCategories = [] }) {
   const getInputClass = (fieldName) => `w-full bg-white/5 border rounded-lg p-3 text-white focus:outline-none focus:ring-2 transition-colors ${errorFields[fieldName] ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:ring-primary'}`;
   const getSelectClass = (fieldName) => `w-full bg-white/5 border rounded-lg p-3 text-white focus:outline-none focus:ring-2 [&>option]:bg-gray-800 transition-colors ${errorFields[fieldName] ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:ring-primary'}`;
+
+  // Build category list: prefer DB, fallback to constants
+  const categoryList = dbCategories.length > 0
+    ? dbCategories.map(c => ({
+        name: c.name,
+        price: c.price,
+        minAge: c.min_age || 5,
+        maxSlots: c.max_slots,
+        currentRegs: c.current_registrations || 0,
+        status: c.status || 'Open',
+        distance: c.distance,
+        elevation: c.elevation,
+      }))
+    : Object.keys(CATEGORY_PRICING).map(cat => ({
+        name: cat,
+        price: CATEGORY_PRICING[cat],
+        minAge: CATEGORY_RULES[cat]?.minAge || 5,
+        maxSlots: null,
+        currentRegs: 0,
+        status: 'Open',
+      }));
 
   return (
     <form onSubmit={onNext} className="space-y-8" noValidate>
@@ -14,30 +35,40 @@ export default function StepTwo({ formData, handleInputChange, onNext, onBack, a
           <p className="mb-4 text-gray-400 text-sm">Based on your DOB, your age is <strong className="text-white">{age} years</strong>.</p>
         )}
         <div className={`flex flex-col gap-4 p-1 rounded-xl transition-colors ${errorFields.category ? 'border border-red-500 bg-red-500/5' : 'border border-transparent'}`}>
-          {Object.keys(CATEGORY_PRICING).map((cat, i) => {
-            const rule = CATEGORY_RULES[cat];
-            const isEligible = age === null || !rule || age >= rule.minAge;
+          {categoryList.map((cat, i) => {
+            const isEligible = age === null || age >= cat.minAge;
+            const isSoldOut = cat.status === 'Sold Out';
+            const isClosed = cat.status === 'Closed';
+            const isDisabled = !isEligible || isSoldOut || isClosed;
             return (
-              <div key={i} className={`relative ${!isEligible ? 'opacity-50' : ''}`}>
+              <div key={i} className={`relative ${isDisabled ? 'opacity-50' : ''}`}>
                 <label 
                   htmlFor={`cat-${i}`}
-                  className={`flex items-center p-4 rounded-xl cursor-${isEligible ? 'pointer' : 'not-allowed'} border transition-colors ${formData.category === cat ? 'bg-primary/10 border-primary' : 'bg-white/5 border-transparent hover:border-white/20'}`}
+                  className={`flex items-center p-4 rounded-xl cursor-${isDisabled ? 'not-allowed' : 'pointer'} border transition-colors ${formData.category === cat.name ? 'bg-primary/10 border-primary' : 'bg-white/5 border-transparent hover:border-white/20'}`}
                 >
                   <input 
                     type="radio" 
                     id={`cat-${i}`}
                     name="category" 
-                    value={cat} 
-                    checked={formData.category === cat} 
+                    value={cat.name} 
+                    checked={formData.category === cat.name} 
                     onChange={handleInputChange} 
                     required 
-                    disabled={!isEligible} 
+                    disabled={isDisabled} 
                     className="w-5 h-5 mr-4 text-primary focus:ring-primary focus:ring-offset-gray-900 border-white/20 bg-black/50" 
                   />
-                  <span className="text-lg font-semibold flex-1 text-white">{cat}</span>
+                  <div className="flex-1">
+                    <span className="text-lg font-semibold text-white">{cat.name}</span>
+                    {cat.distance && <span className="text-xs text-gray-400 ml-2">{cat.distance}{cat.elevation && cat.elevation !== '0m' ? ` • ${cat.elevation} elev.` : ''}</span>}
+                  </div>
                   <div className="text-right">
-                    <span className="font-extrabold block text-white">{formatCurrency(CATEGORY_PRICING[cat])}</span>
-                    {!isEligible && <span className="text-xs text-red-500">Min age {rule.minAge}</span>}
+                    <span className="font-extrabold block text-white">{formatCurrency(cat.price)}</span>
+                    {!isEligible && <span className="text-xs text-red-500">Min age {cat.minAge}</span>}
+                    {isSoldOut && <span className="text-xs text-red-500">Sold Out</span>}
+                    {isClosed && <span className="text-xs text-yellow-500">Closed</span>}
+                    {cat.maxSlots && cat.status === 'Open' && (
+                      <span className="text-xs text-gray-500">{cat.maxSlots - cat.currentRegs} slots left</span>
+                    )}
                   </div>
                 </label>
               </div>

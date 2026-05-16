@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { CATEGORY_PRICING, CURRENT_EVENT, CATEGORY_RULES } from '../../utils/constants';
-import { addRegistration } from '../../utils/storage';
+import { addRegistration, getEventCategories, getCurrentEvent } from '../../utils/storage';
 import { isValidPhone, calculateAge } from '../../utils/validation';
 import { trackEvent } from '../../utils/analytics';
 
@@ -35,6 +35,8 @@ export default function Register() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [dbCategories, setDbCategories] = useState([]);
+  const [eventConfig, setEventConfig] = useState(null);
 
   const age = useMemo(() => calculateAge(formData.dob), [formData.dob]);
 
@@ -50,6 +52,9 @@ export default function Register() {
         console.error('Failed to parse registration draft', e);
       }
     }
+    // Fetch DB categories and event config
+    getEventCategories(CURRENT_EVENT.id).then(cats => { if (cats.length > 0) setDbCategories(cats); });
+    getCurrentEvent().then(ev => { if (ev) setEventConfig(ev); });
     trackEvent('registration_started', { eventName: CURRENT_EVENT.name });
     setIsLoaded(true);
   }, []);
@@ -192,7 +197,12 @@ export default function Register() {
       return;
     }
 
-    const price = CATEGORY_PRICING[formData.category] || 0;
+    // Use DB category price if available, fallback to constants
+    let price = CATEGORY_PRICING[formData.category] || 0;
+    if (dbCategories.length > 0) {
+      const dbCat = dbCategories.find(c => c.name === formData.category);
+      if (dbCat) price = dbCat.price;
+    }
 
     trackEvent('registration_payment_initiated', { category: formData.category, price });
     setIsSubmitting(true);
@@ -231,7 +241,13 @@ export default function Register() {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
   };
 
-  const calculateTotal = () => CATEGORY_PRICING[formData.category] || 0;
+  const calculateTotal = () => {
+    if (dbCategories.length > 0) {
+      const dbCat = dbCategories.find(c => c.name === formData.category);
+      if (dbCat) return dbCat.price;
+    }
+    return CATEGORY_PRICING[formData.category] || 0;
+  };
 
   return (
     <div className="min-h-[80dvh] flex items-center py-12">
@@ -296,6 +312,7 @@ export default function Register() {
               age={age} 
               formatCurrency={formatCurrency} 
               errorFields={errorFields}
+              dbCategories={dbCategories}
             />
           )}
 
@@ -310,6 +327,7 @@ export default function Register() {
               formatCurrency={formatCurrency} 
               calculateTotal={calculateTotal} 
               errorFields={errorFields}
+              dbCategories={dbCategories}
             />
           )}
 

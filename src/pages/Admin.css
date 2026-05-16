@@ -875,3 +875,420 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ========================================
+   Section Titles
+   ======================================== */
+.admin-form-section-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-primary);
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(57, 255, 20, 0.1);
+}
+
+/* ========================================
+   Registration Actions & Bulk Bar
+   ======================================== */
+.admin-reg-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: fadeInUp 0.3s ease;
+  flex-wrap: wrap;
+}
+
+.admin-row-selected {
+  background: rgba(57, 255, 20, 0.04) !important;
+}
+
+.admin-row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.admin-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ========================================
+   Category Cards
+   ======================================== */
+.admin-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.admin-cat-card {
+  border-radius: 14px;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.admin-cat-card:hover {
+  transform: translateY(-2px);
+}
+
+.admin-cat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.25rem 1.25rem 0;
+}
+
+.admin-cat-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.admin-cat-card-body {
+  padding: 1rem 1.25rem;
+}
+
+.admin-cat-price {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 0.75rem;
+}
+
+.admin-cat-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1rem;
+}
+
+.admin-cat-slots {
+  margin-top: 0.5rem;
+}
+
+.admin-cat-slots-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.admin-cat-slots-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.admin-cat-slots-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.admin-cat-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.admin-cat-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: all 0.2s;
+  min-height: 32px;
+}
+
+.admin-cat-action-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-main);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.admin-cat-delete-btn {
+  border-color: rgba(255, 60, 60, 0.2);
+  color: #ff6b6b;
+}
+
+.admin-cat-delete-btn:hover {
+  background: rgba(255, 60, 60, 0.08);
+  border-color: rgba(255, 60, 60, 0.4);
+}
+
+.admin-badge-cancelled {
+  background: rgba(255, 60, 60, 0.1);
+  color: #ff6b6b;
+}
+
+/* ========================================
+   Schedule Timeline
+   ======================================== */
+.admin-schedule-group {
+  margin-bottom: 1.5rem;
+}
+
+.admin-schedule-group:last-child {
+  margin-bottom: 0;
+}
+
+.admin-schedule-day {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0 0 0.75rem;
+  padding-left: 28px;
+}
+
+.admin-schedule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 8px 0;
+  position: relative;
+}
+
+.admin-schedule-item::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 22px;
+  bottom: -8px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-schedule-group:last-child .admin-schedule-item:last-child::before {
+  display: none;
+}
+
+.admin-schedule-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.3);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.admin-schedule-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-schedule-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-schedule-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-right: 12px;
+}
+
+.admin-schedule-title {
+  font-size: 0.9rem;
+  color: var(--color-text-main);
+}
+
+.admin-schedule-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ========================================
+   Modal
+   ======================================== */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.admin-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  animation: fadeInUp 0.3s ease;
+}
+
+.admin-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-modal-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.admin-modal-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  min-height: 36px;
+  min-width: 36px;
+}
+
+.admin-modal-close:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-main);
+}
+
+.admin-modal-body {
+  padding: 1.5rem;
+}
+
+.admin-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ========================================
+   Email Log
+   ======================================== */
+.admin-email-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-email-log-item {
+  padding: 1rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s;
+}
+
+.admin-email-log-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-email-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+
+.admin-email-log-subject {
+  font-weight: 600;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-email-log-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.admin-email-log-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ========================================
+   Tab label hide on very small screens
+   ======================================== */
+@media (max-width: 500px) {
+  .admin-tab-label {
+    display: none;
+  }
+
+  .admin-tab {
+    padding: 10px 8px;
+    min-width: 0;
+  }
+
+  .admin-cat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 501px) and (max-width: 767px) {
+  .admin-cat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ========================================
+   Filters row update for 3 filters
+   ======================================== */
+@media (min-width: 768px) {
+  .admin-filters {
+    max-width: 650px;
+  }
+}
+

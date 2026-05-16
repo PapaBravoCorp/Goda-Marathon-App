@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Download, Filter } from 'lucide-react';
-import { getRegistrations } from '../utils/storage';
+import { getRegistrations, getEventCategories } from '../utils/storage';
 import { CURRENT_EVENT } from '../utils/constants';
 
 export default function Results() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [results, setResults] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -61,6 +62,19 @@ export default function Results() {
     }
   };
 
+  // Fetch categories for filter
+  useEffect(() => {
+    getEventCategories(CURRENT_EVENT.id).then(cats => {
+      if (cats.length > 0) {
+        setCategoryOptions(cats.map(c => c.name));
+      } else {
+        // Fallback: derive from results data
+        const uniqueCats = [...new Set(results.map(r => r.category))];
+        setCategoryOptions(uniqueCats);
+      }
+    });
+  }, [results]);
+
   const filtered = results.filter(r => {
     const matchesSearch = 
       r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -96,10 +110,7 @@ export default function Results() {
                 style={{ paddingLeft: '50px', borderRadius: '8px', width: '100%', appearance: 'none', background: 'rgba(255,255,255,0.05)' }}
               >
                 <option value="">All Categories</option>
-                <option value="5K Run">5K Run</option>
-                <option value="10K Run">10K Run</option>
-                <option value="Half Marathon">Half Marathon</option>
-                <option value="Full Marathon">Full Marathon</option>
+                {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>

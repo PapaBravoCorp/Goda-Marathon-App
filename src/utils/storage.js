@@ -309,3 +309,236 @@ export const updateEvent = async (id, updates) => {
     throw error;
   }
 };
+
+// ============================================================
+// Event Categories
+// ============================================================
+const CATEGORIES_TABLE = 'event_categories';
+
+export const getEventCategories = async (eventId) => {
+  try {
+    const { data, error } = await supabase
+      .from(CATEGORIES_TABLE)
+      .select('*')
+      .eq('event_id', eventId)
+      .order('display_order', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching categories', error);
+    return [];
+  }
+};
+
+export const addEventCategory = async (categoryData) => {
+  try {
+    const { data, error } = await supabase
+      .from(CATEGORIES_TABLE)
+      .insert([categoryData])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error adding category', error);
+    throw error;
+  }
+};
+
+export const updateEventCategory = async (id, updates) => {
+  try {
+    const { data, error } = await supabase
+      .from(CATEGORIES_TABLE)
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating category', error);
+    throw error;
+  }
+};
+
+export const deleteEventCategory = async (id) => {
+  try {
+    const { error } = await supabase
+      .from(CATEGORIES_TABLE)
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting category', error);
+    throw error;
+  }
+};
+
+// ============================================================
+// Event Schedule
+// ============================================================
+const SCHEDULE_TABLE = 'event_schedule';
+
+export const getEventSchedule = async (eventId) => {
+  try {
+    const { data, error } = await supabase
+      .from(SCHEDULE_TABLE)
+      .select('*')
+      .eq('event_id', eventId)
+      .order('display_order', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching schedule', error);
+    return [];
+  }
+};
+
+export const addScheduleItem = async (itemData) => {
+  try {
+    const { data, error } = await supabase
+      .from(SCHEDULE_TABLE)
+      .insert([itemData])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error adding schedule item', error);
+    throw error;
+  }
+};
+
+export const updateScheduleItem = async (id, updates) => {
+  try {
+    const { data, error } = await supabase
+      .from(SCHEDULE_TABLE)
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error updating schedule item', error);
+    throw error;
+  }
+};
+
+export const deleteScheduleItem = async (id) => {
+  try {
+    const { error } = await supabase
+      .from(SCHEDULE_TABLE)
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting schedule item', error);
+    throw error;
+  }
+};
+
+// ============================================================
+// Registration Management (Enhanced)
+// ============================================================
+
+export const deleteRegistration = async (id) => {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update({ payment_status: 'CANCELLED' })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error soft-deleting registration', error);
+    throw error;
+  }
+};
+
+export const bulkUpdatePaymentStatus = async (ids, status) => {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update({ payment_status: status })
+      .in('id', ids)
+      .select();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error bulk updating', error);
+    throw error;
+  }
+};
+
+export const bulkDeleteRegistrations = async (ids) => {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update({ payment_status: 'CANCELLED' })
+      .in('id', ids)
+      .select();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error bulk deleting', error);
+    throw error;
+  }
+};
+
+// ============================================================
+// Email / Notifications
+// ============================================================
+const EMAIL_LOG_TABLE = 'email_log';
+
+export const sendBulkEmail = async ({ subject, body, recipientFilter, recipientCount }) => {
+  try {
+    const logEntry = {
+      subject,
+      body,
+      recipient_count: recipientCount,
+      filter_criteria: recipientFilter,
+      sent_by: 'admin'
+    };
+
+    const { data: logData, error: logError } = await supabase
+      .from(EMAIL_LOG_TABLE)
+      .insert([logEntry])
+      .select()
+      .single();
+
+    if (logError) throw logError;
+
+    // Attempt to call edge function for actual sending
+    try {
+      await supabase.functions.invoke('send-bulk-email', {
+        body: { subject, body, recipientFilter, logId: logData.id }
+      });
+    } catch (fnErr) {
+      console.warn('Edge function not available, email logged but not sent:', fnErr);
+    }
+
+    return logData;
+  } catch (error) {
+    console.error('Error sending bulk email', error);
+    throw error;
+  }
+};
+
+export const getEmailLog = async () => {
+  try {
+    const { data, error } = await supabase
+      .from(EMAIL_LOG_TABLE)
+      .select('*')
+      .order('sent_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching email log', error);
+    return [];
+  }
+};

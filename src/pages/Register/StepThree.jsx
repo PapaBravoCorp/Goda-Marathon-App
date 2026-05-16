@@ -12,7 +12,8 @@ export default function StepThree({
   isSubmitting, 
   formatCurrency, 
   calculateTotal,
-  errorFields = {}
+  errorFields = {},
+  dbCategories = []
 }) {
   const getCheckboxClass = (fieldName) => `mt-1 w-5 h-5 mr-3 rounded border bg-white/5 focus:ring-primary focus:ring-offset-gray-900 shrink-0 transition-colors ${errorFields[fieldName] ? 'border-red-500 text-red-500 focus:ring-red-500 bg-red-500/10' : 'border-white/10 text-primary'}`;
 
@@ -51,7 +52,7 @@ export default function StepThree({
       <div className="bg-black/30 p-6 rounded-xl">
         <div className="flex justify-between items-center mb-3 text-gray-200">
           <span>{formData.category} Entry</span>
-          <span>{formatCurrency(CATEGORY_PRICING[formData.category] || 0)}</span>
+          <span>{formatCurrency(calculateTotal())}</span>
         </div>
         <div className="flex justify-between items-center pt-4 border-t border-white/10 text-xl font-extrabold text-primary">
           <span>Total Payable</span>

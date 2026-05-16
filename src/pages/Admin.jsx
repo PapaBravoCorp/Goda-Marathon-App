@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Users, IndianRupee, Activity, Search, Filter, Trash2, Lock, LogOut, Eye, EyeOff, ShieldCheck, RefreshCw, Image, Video, Plus, X, Settings, Save, CheckCircle } from 'lucide-react';
-import { getRegistrations, getStats, exportToCSV, clearAll, getPastEventMedia, addPastEventMedia, deletePastEventMedia, getCurrentEvent, updateEvent } from '../utils/storage';
+import { Lock, LogOut, Eye, EyeOff, ShieldCheck, Users, LayoutGrid, CalendarClock, Image, Settings, Mail } from 'lucide-react';
 import { CURRENT_EVENT } from '../utils/constants';
+
+import RegistrationManager from '../components/admin/RegistrationManager';
+import CategoryManager from '../components/admin/CategoryManager';
+import ScheduleManager from '../components/admin/ScheduleManager';
+import MediaManager from '../components/admin/MediaManager';
+import EventSettings from '../components/admin/EventSettings';
+import NotificationsManager from '../components/admin/NotificationsManager';
+
 import './Admin.css';
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'goda2026';
@@ -72,330 +79,18 @@ function AdminLogin({ onLogin }) {
   );
 }
 
-// ─── Media Management Tab ────────────────────────────────────────
-function MediaManager() {
-  const [media, setMedia] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState('');
-  const [formData, setFormData] = useState({
-    eventYear: '2025',
-    eventTitle: 'Goda Epic Trail - 2nd Edition',
-    mediaType: 'image',
-    url: '',
-    caption: '',
-    displayOrder: 0
-  });
+const TABS = [
+  { id: 'registrations', label: 'Registrations', icon: Users },
+  { id: 'categories', label: 'Categories', icon: LayoutGrid },
+  { id: 'schedule', label: 'Schedule', icon: CalendarClock },
+  { id: 'media', label: 'Media', icon: Image },
+  { id: 'event', label: 'Settings', icon: Settings },
+  { id: 'notifications', label: 'Email', icon: Mail },
+];
 
-  useEffect(() => {
-    loadMedia();
-  }, []);
-
-  const loadMedia = async () => {
-    setIsLoading(true);
-    const data = await getPastEventMedia();
-    setMedia(data);
-    setIsLoading(false);
-  };
-
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    setFormError('');
-
-    if (!formData.url.trim()) {
-      setFormError('Media URL is required.');
-      return;
-    }
-    if (!formData.eventYear.trim()) {
-      setFormError('Event year is required.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await addPastEventMedia(formData);
-      setFormData(prev => ({ ...prev, url: '', caption: '', displayOrder: 0 }));
-      setShowForm(false);
-      await loadMedia();
-    } catch (err) {
-      setFormError('Failed to add media. Please check the URL and try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this media item?')) return;
-    try {
-      await deletePastEventMedia(id);
-      await loadMedia();
-    } catch (err) {
-      console.error('Delete failed', err);
-    }
-  };
-
-  const handleInput = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  return (
-    <div>
-      {/* Add Media Button / Form */}
-      <div className="admin-media-header">
-        <h3 style={{ margin: 0 }}>Past Events Media</h3>
-        <button
-          className="btn btn-primary admin-action-btn"
-          onClick={() => setShowForm(!showForm)}
-          style={{ gap: '6px' }}
-        >
-          {showForm ? <X size={18} /> : <Plus size={18} />}
-          <span className="admin-action-label">{showForm ? 'Cancel' : 'Add Media'}</span>
-        </button>
-      </div>
-
-      {showForm && (
-        <form onSubmit={handleAdd} className="admin-media-form glass">
-          <div className="admin-media-form-grid">
-            <div className="admin-media-form-group">
-              <label htmlFor="media-year">Event Year</label>
-              <input id="media-year" name="eventYear" value={formData.eventYear} onChange={handleInput} placeholder="e.g. 2025" />
-            </div>
-            <div className="admin-media-form-group">
-              <label htmlFor="media-title">Event Title</label>
-              <input id="media-title" name="eventTitle" value={formData.eventTitle} onChange={handleInput} placeholder="e.g. Goda Epic Trail Run" />
-            </div>
-            <div className="admin-media-form-group">
-              <label htmlFor="media-type">Media Type</label>
-              <select id="media-type" name="mediaType" value={formData.mediaType} onChange={handleInput}>
-                <option value="image">Image</option>
-                <option value="video">Video (YouTube / Direct)</option>
-              </select>
-            </div>
-            <div className="admin-media-form-group">
-              <label htmlFor="media-order">Display Order</label>
-              <input id="media-order" name="displayOrder" type="number" value={formData.displayOrder} onChange={handleInput} />
-            </div>
-          </div>
-          <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
-            <label htmlFor="media-url">Media URL *</label>
-            <input id="media-url" name="url" value={formData.url} onChange={handleInput} placeholder="https://... (image or YouTube URL)" />
-          </div>
-          <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
-            <label htmlFor="media-caption">Caption</label>
-            <input id="media-caption" name="caption" value={formData.caption} onChange={handleInput} placeholder="Optional description" />
-          </div>
-
-          {formError && (
-            <div className="admin-login-error" style={{ marginTop: '0.75rem' }}>
-              <span>{formError}</span>
-            </div>
-          )}
-
-          <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }} disabled={isSubmitting}>
-            {isSubmitting ? 'Adding...' : 'Add Media'}
-          </button>
-        </form>
-      )}
-
-      {/* Media Grid */}
-      {isLoading ? (
-        <div className="admin-empty-state">Loading media...</div>
-      ) : media.length === 0 ? (
-        <div className="admin-empty-state" style={{ padding: '3rem 1rem' }}>
-          <p>No media added yet. Click "Add Media" to get started.</p>
-        </div>
-      ) : (
-        <div className="admin-media-grid">
-          {media.map(item => (
-            <div key={item.id} className="admin-media-card glass">
-              <div className="admin-media-preview">
-                {item.media_type === 'image' ? (
-                  <img
-                    src={item.url}
-                    alt={item.caption || 'Media'}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-muted);font-size:0.8rem;">Image failed to load</div>';
-                    }}
-                  />
-                ) : (
-                  <div className="admin-media-video-badge">
-                    <Video size={24} />
-                    <span>Video</span>
-                  </div>
-                )}
-              </div>
-              <div className="admin-media-info">
-                <div className="admin-media-meta">
-                  <span className={`admin-badge ${item.media_type === 'image' ? 'admin-badge-paid' : 'admin-badge-pending'}`}>
-                    {item.media_type}
-                  </span>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>{item.event_year}</span>
-                </div>
-                {item.caption && (
-                  <p className="admin-media-caption-text">{item.caption}</p>
-                )}
-                <button
-                  className="admin-media-delete"
-                  onClick={() => handleDelete(item.id)}
-                  aria-label="Delete media"
-                >
-                  <Trash2 size={14} />
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Event Settings Tab ──────────────────────────────────────────
-function EventSettings() {
-  const [eventData, setEventData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState('');
-
-  useEffect(() => {
-    loadEvent();
-  }, []);
-
-  const loadEvent = async () => {
-    setIsLoading(true);
-    const data = await getCurrentEvent();
-    setEventData(data);
-    setIsLoading(false);
-  };
-
-  const handleInput = (e) => {
-    const { name, value, type, checked } = e.target;
-    setEventData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-    setSaveMsg('');
-  };
-
-  const handleSave = async () => {
-    if (!eventData) return;
-    setIsSaving(true);
-    setSaveMsg('');
-    try {
-      await updateEvent(eventData.id, {
-        name: eventData.name,
-        date: eventData.date,
-        location: eventData.location,
-        venue: eventData.venue,
-        description: eventData.description,
-        flag_off_time: eventData.flag_off_time,
-        registration_open: eventData.registration_open,
-        edition: eventData.edition,
-        hero_image: eventData.hero_image,
-      });
-      setSaveMsg('Event settings saved successfully!');
-    } catch (err) {
-      setSaveMsg('Failed to save. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  if (isLoading) {
-    return <div className="admin-empty-state">Loading event settings...</div>;
-  }
-
-  if (!eventData) {
-    return (
-      <div className="admin-empty-state" style={{ padding: '3rem 1rem' }}>
-        <p>No event found in the database. Please seed the events table first.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="admin-media-header">
-        <h3 style={{ margin: 0 }}>Event Settings</h3>
-        <button className="btn btn-primary admin-action-btn" onClick={handleSave} disabled={isSaving} style={{ gap: '6px' }}>
-          {isSaving ? <RefreshCw size={18} className="spin" /> : <Save size={18} />}
-          <span className="admin-action-label">{isSaving ? 'Saving...' : 'Save Changes'}</span>
-        </button>
-      </div>
-
-      {saveMsg && (
-        <div className={`admin-save-msg ${saveMsg.includes('success') ? 'success' : 'error'}`}>
-          <CheckCircle size={16} />
-          {saveMsg}
-        </div>
-      )}
-
-      <div className="admin-event-form glass">
-        <div className="admin-media-form-grid">
-          <div className="admin-media-form-group">
-            <label htmlFor="evt-name">Event Name</label>
-            <input id="evt-name" name="name" value={eventData.name || ''} onChange={handleInput} />
-          </div>
-          <div className="admin-media-form-group">
-            <label htmlFor="evt-edition">Edition</label>
-            <input id="evt-edition" name="edition" value={eventData.edition || ''} onChange={handleInput} placeholder="e.g. 3rd" />
-          </div>
-          <div className="admin-media-form-group">
-            <label htmlFor="evt-date">Event Date</label>
-            <input id="evt-date" name="date" type="date" value={eventData.date || ''} onChange={handleInput} />
-          </div>
-          <div className="admin-media-form-group">
-            <label htmlFor="evt-flagoff">Flag-Off Time</label>
-            <input id="evt-flagoff" name="flag_off_time" value={eventData.flag_off_time || ''} onChange={handleInput} placeholder="e.g. 06:45 AM" />
-          </div>
-          <div className="admin-media-form-group">
-            <label htmlFor="evt-location">Location</label>
-            <input id="evt-location" name="location" value={eventData.location || ''} onChange={handleInput} />
-          </div>
-          <div className="admin-media-form-group">
-            <label htmlFor="evt-venue">Venue</label>
-            <input id="evt-venue" name="venue" value={eventData.venue || ''} onChange={handleInput} />
-          </div>
-        </div>
-
-        <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
-          <label htmlFor="evt-hero">Hero Image URL</label>
-          <input id="evt-hero" name="hero_image" value={eventData.hero_image || ''} onChange={handleInput} placeholder="/images/trail_hero.png" />
-        </div>
-
-        <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
-          <label htmlFor="evt-desc">Description</label>
-          <textarea id="evt-desc" name="description" value={eventData.description || ''} onChange={handleInput} rows={3} style={{ resize: 'vertical' }} />
-        </div>
-
-        <div className="admin-event-toggle" style={{ marginTop: '1rem' }}>
-          <label className="admin-toggle-label">
-            <input
-              type="checkbox"
-              name="registration_open"
-              checked={eventData.registration_open || false}
-              onChange={handleInput}
-              className="admin-toggle-checkbox"
-            />
-            <span className="admin-toggle-switch"></span>
-            <span>Registration {eventData.registration_open ? 'Open' : 'Closed'}</span>
-          </label>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Admin Component ────────────────────────────────────────
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('registrations');
-  const [registrations, setRegistrations] = useState([]);
-  const [stats, setStats] = useState({ totalRegistrations: 0, revenue: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
 
   useEffect(() => {
     if (sessionStorage.getItem(SESSION_KEY) === 'true') {
@@ -403,58 +98,10 @@ export default function Admin() {
     }
   }, []);
 
-  useEffect(() => {
-    if (isAuthenticated && activeTab === 'registrations') {
-      fetchData();
-    }
-  }, [isAuthenticated, activeTab]);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const [regsData, statsData] = await Promise.all([
-        getRegistrations(CURRENT_EVENT.id),
-        getStats(CURRENT_EVENT.id)
-      ]);
-      setRegistrations(regsData);
-      setStats(statsData);
-    } catch (error) {
-      console.error("Error fetching admin data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleLogout = () => {
     sessionStorage.removeItem(SESSION_KEY);
     setIsAuthenticated(false);
   };
-
-  const handleExport = async () => {
-    await exportToCSV(CURRENT_EVENT.id);
-  };
-
-  const handleClearData = async () => {
-    if (window.confirm("Are you sure? This cannot be undone.") &&
-        window.confirm("Final warning: Delete ALL data?")) {
-      await clearAll();
-      await fetchData();
-    }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
-  };
-
-  const filteredRegistrations = registrations.filter(r => {
-    const matchesSearch = 
-      `${r.first_name} ${r.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = categoryFilter ? r.category === categoryFilter : true;
-    
-    return matchesSearch && matchesCategory;
-  });
 
   if (!isAuthenticated) {
     return <AdminLogin onLogin={() => setIsAuthenticated(true)} />;
@@ -469,210 +116,44 @@ export default function Admin() {
             <h2>Admin <span className="text-primary">Dashboard</span></h2>
             <p className="text-muted">{CURRENT_EVENT.name}</p>
           </div>
-          
-          <div className="admin-header-actions">
-            {activeTab === 'registrations' && (
-              <>
-                <button className="btn btn-outline admin-action-btn" onClick={fetchData} title="Refresh">
-                  <RefreshCw size={18} className={isLoading ? 'spin' : ''} />
-                  <span className="admin-action-label">Refresh</span>
-                </button>
-                <button className="btn btn-outline admin-action-btn" onClick={handleExport}>
-                  <Download size={18} />
-                  <span className="admin-action-label">Export</span>
-                </button>
-                <button className="btn btn-outline admin-action-btn admin-danger-btn" onClick={handleClearData}>
-                  <Trash2 size={18} />
-                  <span className="admin-action-label">Clear</span>
-                </button>
-              </>
-            )}
-            <button className="btn btn-outline admin-action-btn admin-logout-btn" onClick={handleLogout}>
-              <LogOut size={18} />
-              <span className="admin-action-label">Logout</span>
-            </button>
-          </div>
+          <button className="btn btn-outline admin-action-btn admin-logout-btn" onClick={handleLogout}>
+            <LogOut size={18} />
+            <span className="admin-action-label">Logout</span>
+          </button>
         </div>
 
         {/* Tabs */}
         <div className="admin-tabs">
-          <button
-            className={`admin-tab ${activeTab === 'registrations' ? 'active' : ''}`}
-            onClick={() => setActiveTab('registrations')}
-          >
-            <Users size={18} />
-            Registrations
-          </button>
-          <button
-            className={`admin-tab ${activeTab === 'media' ? 'active' : ''}`}
-            onClick={() => setActiveTab('media')}
-          >
-            <Image size={18} />
-            Media
-          </button>
-          <button
-            className={`admin-tab ${activeTab === 'event' ? 'active' : ''}`}
-            onClick={() => setActiveTab('event')}
-          >
-            <Settings size={18} />
-            Event Settings
-          </button>
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <tab.icon size={18} />
+              <span className="admin-tab-label">{tab.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}
         {activeTab === 'registrations' && (
-          <>
-            {/* Stats Cards */}
-            <div className="admin-stats-grid">
-              <div className="glass admin-stat-card">
-                <div className="admin-stat-icon text-primary"><Users size={22} /></div>
-                <div className="admin-stat-body">
-                  <span className="admin-stat-label">Total Registrations</span>
-                  <span className="admin-stat-value">{stats.totalRegistrations}</span>
-                </div>
-              </div>
-              <div className="glass admin-stat-card">
-                <div className="admin-stat-icon text-accent"><IndianRupee size={22} /></div>
-                <div className="admin-stat-body">
-                  <span className="admin-stat-label">Total Revenue</span>
-                  <span className="admin-stat-value">{formatCurrency(stats.revenue)}</span>
-                </div>
-              </div>
-              <div className="glass admin-stat-card">
-                <div className="admin-stat-icon" style={{ color: 'var(--color-text-muted)' }}><Activity size={22} /></div>
-                <div className="admin-stat-body">
-                  <span className="admin-stat-label">System Status</span>
-                  <span className="admin-stat-value admin-status-value">
-                    <span className="admin-status-dot"></span>
-                    Operational
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Registrations Section */}
-            <div className="glass admin-table-section">
-              <div className="admin-table-header">
-                <h3>Recent Registrations</h3>
-                <div className="admin-filters">
-                  <div className="admin-search-wrap">
-                    <Search size={16} className="admin-filter-icon" />
-                    <input
-                      id="admin-search"
-                      type="text"
-                      placeholder="Search name or email..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  <div className="admin-select-wrap">
-                    <Filter size={16} className="admin-filter-icon" />
-                    <select
-                      id="admin-category-filter"
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                    >
-                      <option value="">All Categories</option>
-                      <option value="5K Run">5K Run</option>
-                      <option value="10K Run">10K Run</option>
-                      <option value="Half Marathon">Half Marathon</option>
-                      <option value="Full Marathon">Full Marathon</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Desktop: Table view */}
-              <div className="admin-table-desktop">
-                <div className="admin-table-wrap">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Category</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {isLoading ? (
-                        <tr>
-                          <td colSpan="5" className="admin-empty-state">Loading data...</td>
-                        </tr>
-                      ) : filteredRegistrations.length === 0 ? (
-                        <tr>
-                          <td colSpan="5" className="admin-empty-state">No registrations found.</td>
-                        </tr>
-                      ) : (
-                        filteredRegistrations.map((row, i) => (
-                          <tr key={row.id || i}>
-                            <td className="admin-cell-name">{row.first_name} {row.last_name}</td>
-                            <td className="admin-cell-muted">{row.email}</td>
-                            <td>{row.category}</td>
-                            <td className="admin-cell-muted">{new Date(row.created_at).toLocaleDateString()}</td>
-                            <td>
-                              <span className={`admin-badge ${row.payment_status === 'PAID' ? 'admin-badge-paid' : 'admin-badge-pending'}`}>
-                                {row.payment_status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Mobile: Card view */}
-              <div className="admin-cards-mobile">
-                {isLoading ? (
-                  <div className="admin-empty-state">Loading data...</div>
-                ) : filteredRegistrations.length === 0 ? (
-                  <div className="admin-empty-state">No registrations found.</div>
-                ) : (
-                  filteredRegistrations.map((row, i) => (
-                    <div key={row.id || i} className="admin-reg-card glass">
-                      <div className="admin-reg-card-header">
-                        <span className="admin-reg-card-name">{row.first_name} {row.last_name}</span>
-                        <span className={`admin-badge ${row.payment_status === 'PAID' ? 'admin-badge-paid' : 'admin-badge-pending'}`}>
-                          {row.payment_status}
-                        </span>
-                      </div>
-                      <div className="admin-reg-card-details">
-                        <div className="admin-reg-card-row">
-                          <span className="admin-reg-card-label">Email</span>
-                          <span className="admin-reg-card-value">{row.email}</span>
-                        </div>
-                        <div className="admin-reg-card-row">
-                          <span className="admin-reg-card-label">Category</span>
-                          <span className="admin-reg-card-value">{row.category}</span>
-                        </div>
-                        <div className="admin-reg-card-row">
-                          <span className="admin-reg-card-label">Date</span>
-                          <span className="admin-reg-card-value">{new Date(row.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {!isLoading && filteredRegistrations.length > 0 && (
-                <div className="admin-table-footer">
-                  Showing {filteredRegistrations.length} of {registrations.length} registrations
-                </div>
-              )}
-            </div>
-          </>
+          <RegistrationManager eventId={CURRENT_EVENT.id} eventName={CURRENT_EVENT.name} />
         )}
-
+        {activeTab === 'categories' && (
+          <CategoryManager eventId={CURRENT_EVENT.id} />
+        )}
+        {activeTab === 'schedule' && (
+          <ScheduleManager eventId={CURRENT_EVENT.id} />
+        )}
         {activeTab === 'media' && (
           <MediaManager />
         )}
-
         {activeTab === 'event' && (
           <EventSettings />
+        )}
+        {activeTab === 'notifications' && (
+          <NotificationsManager eventId={CURRENT_EVENT.id} />
         )}
       </div>
     </div>

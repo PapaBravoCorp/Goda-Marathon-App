@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { MapPin, Calendar, Clock, Award, Info, Loader } from 'lucide-react';
-import { getCurrentEvent } from '../utils/storage';
+import { getCurrentEvent, getEventCategories, getEventSchedule } from '../utils/storage';
+import { CURRENT_EVENT } from '../utils/constants';
 
 // Hardcoded fallback if DB fetch fails
 const FALLBACK_EVENT = {
@@ -48,6 +49,8 @@ function formatPrice(price) {
 
 export default function EventDetails() {
   const [event, setEvent] = useState(null);
+  const [dbCategories, setDbCategories] = useState([]);
+  const [dbSchedule, setDbSchedule] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -57,8 +60,14 @@ export default function EventDetails() {
   const loadEvent = async () => {
     setIsLoading(true);
     try {
-      const data = await getCurrentEvent();
+      const [data, cats, sched] = await Promise.all([
+        getCurrentEvent(),
+        getEventCategories(CURRENT_EVENT.id),
+        getEventSchedule(CURRENT_EVENT.id)
+      ]);
       setEvent(data || FALLBACK_EVENT);
+      setDbCategories(cats);
+      setDbSchedule(sched);
     } catch {
       setEvent(FALLBACK_EVENT);
     } finally {
@@ -75,8 +84,8 @@ export default function EventDetails() {
   }
 
   const e = event;
-  const categories = e.categories || [];
-  const schedule = e.schedule || [];
+  const categories = dbCategories.length > 0 ? dbCategories : (e.categories || []);
+  const schedule = dbSchedule.length > 0 ? dbSchedule.map(s => ({ time: s.time, title: s.title, day: s.day_label })) : (e.schedule || []);
   const features = e.features || [];
 
   // Group schedule items by "day" headers
