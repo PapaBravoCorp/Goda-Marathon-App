@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Activity, Lock, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getCurrentEvent } from '../utils/storage';
+import { getCurrentEvent } from '../utils/services/events';
 import './Navbar.css';
 
 export default function Navbar() {

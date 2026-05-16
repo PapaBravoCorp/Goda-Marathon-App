@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { CATEGORY_PRICING, CURRENT_EVENT, CATEGORY_RULES } from '../../utils/constants';
-import { addRegistration, getEventCategories, getCurrentEvent } from '../../utils/storage';
+import { addRegistration } from '../../utils/services/registrations';
+import { getEventCategories } from '../../utils/services/categories';
+import { getCurrentEvent } from '../../utils/services/events';
 import { isValidPhone, calculateAge } from '../../utils/validation';
 import { trackEvent } from '../../utils/analytics';
 
@@ -53,10 +55,23 @@ export default function Register() {
       }
     }
     // Fetch DB categories and event config
-    getEventCategories(CURRENT_EVENT.id).then(cats => { if (cats.length > 0) setDbCategories(cats); });
-    getCurrentEvent().then(ev => { if (ev) setEventConfig(ev); });
+    getCurrentEvent().then(ev => {
+      if (ev) {
+        setEventConfig(ev);
+        // Use event UUID for category queries
+        getEventCategories(ev.id, CURRENT_EVENT.slug).then(cats => {
+          if (cats.length > 0) setDbCategories(cats);
+          setIsLoaded(true);
+        }).catch(() => {
+          setIsLoaded(true);
+        });
+      } else {
+        setIsLoaded(true);
+      }
+    }).catch(() => {
+      setIsLoaded(true);
+    });
     trackEvent('registration_started', { eventName: CURRENT_EVENT.name });
-    setIsLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -213,7 +228,7 @@ export default function Register() {
       ...formData,
       waiversAccepted: true,
       price: price,
-      eventId: CURRENT_EVENT.id,
+      eventId: CURRENT_EVENT.slug,
       eventName: CURRENT_EVENT.name
     };
 
@@ -253,7 +268,21 @@ export default function Register() {
     <div className="min-h-[80dvh] flex items-center py-12">
       <div className="container max-w-3xl mx-auto px-4">
         
-        {step < 4 && (
+        {!isLoaded ? (
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading registration details...</p>
+          </div>
+        ) : eventConfig && eventConfig.registration_open === false ? (
+          <div className="glass p-10 rounded-2xl text-center py-16">
+            <h2 className="text-3xl font-bold text-white mb-4">Registration Closed</h2>
+            <p className="text-gray-300 text-lg">
+              Registration for {eventConfig.name} is currently closed. Thank you for your interest!
+            </p>
+          </div>
+        ) : (
+          <>
+            {step < 4 && (
           <div className="relative flex justify-between mb-10">
             <div className="absolute top-[15px] left-0 w-full h-[2px] bg-white/10 -z-10"></div>
             <div 
@@ -339,6 +368,8 @@ export default function Register() {
           )}
 
         </div>
+          </>
+        )}
       </div>
     </div>
   );

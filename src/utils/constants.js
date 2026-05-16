@@ -15,8 +15,10 @@ export const CATEGORY_RULES = {
   "Full Marathon": { minAge: 18 }
 };
 
+// Human-readable event identifier for routing and legacy registrations table.
+// The actual UUID primary key is resolved dynamically via getCurrentEvent().
 export const CURRENT_EVENT = {
-  id: "goda-2026",
+  slug: "goda-2026",
   name: "GODA Epic Trail Run 2026"
 };
 

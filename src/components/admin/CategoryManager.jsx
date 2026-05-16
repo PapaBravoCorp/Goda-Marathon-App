@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Trash2, Edit3, ChevronDown, ChevronUp, Users } from 'lucide-react';
-import { getEventCategories, addEventCategory, updateEventCategory, deleteEventCategory, getRegistrations } from '../../utils/storage';
+import { Plus, X, Trash2, Edit3, Users } from 'lucide-react';
+import { getEventCategories, addEventCategory, updateEventCategory, deleteEventCategory } from '../../utils/services/categories';
 
-export default function CategoryManager({ eventId }) {
+export default function CategoryManager({ eventId, eventSlug }) {
   const [categories, setCategories] = useState([]);
-  const [regCounts, setRegCounts] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -23,18 +22,9 @@ export default function CategoryManager({ eventId }) {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [cats, regs] = await Promise.all([
-        getEventCategories(eventId),
-        getRegistrations(eventId)
-      ]);
+      // Registration counts are derived inside the service
+      const cats = await getEventCategories(eventId, eventSlug);
       setCategories(cats);
-      const counts = {};
-      regs.forEach(r => {
-        if (r.payment_status !== 'CANCELLED') {
-          counts[r.category] = (counts[r.category] || 0) + 1;
-        }
-      });
-      setRegCounts(counts);
     } catch (err) {
       console.error(err);
     } finally {
@@ -197,7 +187,7 @@ export default function CategoryManager({ eventId }) {
       ) : (
         <div className="admin-cat-grid">
           {categories.map(cat => {
-            const registered = regCounts[cat.name] || 0;
+            const registered = cat.registration_count || 0;
             const pct = cat.max_slots > 0 ? Math.min((registered / cat.max_slots) * 100, 100) : 0;
             return (
               <div key={cat.id} className="admin-cat-card glass">

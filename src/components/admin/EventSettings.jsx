@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, CheckCircle } from 'lucide-react';
-import { getCurrentEvent, updateEvent } from '../../utils/storage';
+import { getCurrentEvent, updateEvent, invalidateEventCache } from '../../utils/services/events';
 
 export default function EventSettings() {
   const [eventData, setEventData] = useState(null);

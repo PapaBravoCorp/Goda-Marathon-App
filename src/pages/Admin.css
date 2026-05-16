@@ -1292,3 +1292,31 @@
   }
 }
 
+/* ========================================
+   Pagination
+   ======================================== */
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-page-btn {
+  padding: 6px 14px !important;
+  font-size: 0.8rem !important;
+  min-height: 34px;
+}
+
+.admin-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-page-info {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}

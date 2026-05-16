@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, LogOut, Eye, EyeOff, ShieldCheck, Users, LayoutGrid, CalendarClock, Image, Settings, Mail } from 'lucide-react';
 import { CURRENT_EVENT } from '../utils/constants';
+import { getCurrentEvent } from '../utils/services/events';
 
 import RegistrationManager from '../components/admin/RegistrationManager';
 import CategoryManager from '../components/admin/CategoryManager';
@@ -91,12 +92,20 @@ const TABS = [
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('registrations');
+  const [eventData, setEventData] = useState(null);
 
   useEffect(() => {
     if (sessionStorage.getItem(SESSION_KEY) === 'true') {
       setIsAuthenticated(true);
     }
   }, []);
+
+  // Resolve event UUID dynamically
+  useEffect(() => {
+    if (isAuthenticated) {
+      getCurrentEvent().then(ev => setEventData(ev));
+    }
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     sessionStorage.removeItem(SESSION_KEY);
@@ -107,6 +116,10 @@ export default function Admin() {
     return <AdminLogin onLogin={() => setIsAuthenticated(true)} />;
   }
 
+  // Event UUID for new FK tables, slug for legacy registrations table
+  const eventUuid = eventData?.id;
+  const eventSlug = CURRENT_EVENT.slug;
+
   return (
     <div className="admin-page">
       <div className="container admin-container">
@@ -114,7 +127,7 @@ export default function Admin() {
         <div className="admin-header">
           <div className="admin-header-info">
             <h2>Admin <span className="text-primary">Dashboard</span></h2>
-            <p className="text-muted">{CURRENT_EVENT.name}</p>
+            <p className="text-muted">{eventData?.name || CURRENT_EVENT.name}</p>
           </div>
           <button className="btn btn-outline admin-action-btn admin-logout-btn" onClick={handleLogout}>
             <LogOut size={18} />
@@ -136,15 +149,15 @@ export default function Admin() {
           ))}
         </div>
 
-        {/* Tab Content */}
+        {/* Tab Content — pass both UUID and slug */}
         {activeTab === 'registrations' && (
-          <RegistrationManager eventId={CURRENT_EVENT.id} eventName={CURRENT_EVENT.name} />
+          <RegistrationManager eventSlug={eventSlug} eventUuid={eventUuid} eventName={eventData?.name || CURRENT_EVENT.name} />
         )}
         {activeTab === 'categories' && (
-          <CategoryManager eventId={CURRENT_EVENT.id} />
+          <CategoryManager eventId={eventUuid} eventSlug={eventSlug} />
         )}
         {activeTab === 'schedule' && (
-          <ScheduleManager eventId={CURRENT_EVENT.id} />
+          <ScheduleManager eventId={eventUuid} />
         )}
         {activeTab === 'media' && (
           <MediaManager />
@@ -153,7 +166,7 @@ export default function Admin() {
           <EventSettings />
         )}
         {activeTab === 'notifications' && (
-          <NotificationsManager eventId={CURRENT_EVENT.id} />
+          <NotificationsManager eventUuid={eventUuid} eventSlug={eventSlug} />
         )}
       </div>
     </div>

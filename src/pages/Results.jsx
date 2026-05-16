@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Download, Filter } from 'lucide-react';
-import { getRegistrations, getEventCategories } from '../utils/storage';
+import { getRegistrations } from '../utils/services/registrations';
+import { getEventCategories } from '../utils/services/categories';
+import { getCurrentEvent } from '../utils/services/events';
 import { CURRENT_EVENT } from '../utils/constants';
 
 export default function Results() {
@@ -17,7 +19,7 @@ export default function Results() {
   const fetchResults = async () => {
     setIsLoading(true);
     try {
-      const storedData = await getRegistrations(CURRENT_EVENT.id);
+      const storedData = await getRegistrations(CURRENT_EVENT.slug);
       
       const mappedData = storedData.map(r => ({
         bib: r.bib,
@@ -62,13 +64,19 @@ export default function Results() {
     }
   };
 
-  // Fetch categories for filter
+  // Fetch categories for filter (needs event UUID)
   useEffect(() => {
-    getEventCategories(CURRENT_EVENT.id).then(cats => {
-      if (cats.length > 0) {
-        setCategoryOptions(cats.map(c => c.name));
+    getCurrentEvent().then(ev => {
+      if (ev?.id) {
+        getEventCategories(ev.id, CURRENT_EVENT.slug).then(cats => {
+          if (cats.length > 0) {
+            setCategoryOptions(cats.map(c => c.name));
+          } else {
+            const uniqueCats = [...new Set(results.map(r => r.category))];
+            setCategoryOptions(uniqueCats);
+          }
+        });
       } else {
-        // Fallback: derive from results data
         const uniqueCats = [...new Set(results.map(r => r.category))];
         setCategoryOptions(uniqueCats);
       }

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { MapPin, Calendar, Clock, Award, Info, Loader } from 'lucide-react';
-import { getCurrentEvent, getEventCategories, getEventSchedule } from '../utils/storage';
+import { getCurrentEvent } from '../utils/services/events';
+import { getEventCategories } from '../utils/services/categories';
+import { getEventSchedule } from '../utils/services/schedule';
 import { CURRENT_EVENT } from '../utils/constants';
 
 // Hardcoded fallback if DB fetch fails
@@ -60,14 +62,18 @@ export default function EventDetails() {
   const loadEvent = async () => {
     setIsLoading(true);
     try {
-      const [data, cats, sched] = await Promise.all([
-        getCurrentEvent(),
-        getEventCategories(CURRENT_EVENT.id),
-        getEventSchedule(CURRENT_EVENT.id)
-      ]);
-      setEvent(data || FALLBACK_EVENT);
-      setDbCategories(cats);
-      setDbSchedule(sched);
+      const data = await getCurrentEvent();
+      const ev = data || FALLBACK_EVENT;
+      setEvent(ev);
+      // Use event UUID for new table queries
+      if (data?.id) {
+        const [cats, sched] = await Promise.all([
+          getEventCategories(data.id, CURRENT_EVENT.slug),
+          getEventSchedule(data.id)
+        ]);
+        setDbCategories(cats);
+        setDbSchedule(sched);
+      }
     } catch {
       setEvent(FALLBACK_EVENT);
     } finally {

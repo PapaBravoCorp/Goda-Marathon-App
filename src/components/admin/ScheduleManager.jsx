@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Trash2, Edit3, Clock } from 'lucide-react';
-import { getEventSchedule, addScheduleItem, updateScheduleItem, deleteScheduleItem } from '../../utils/storage';
+import { getEventSchedule, addScheduleItem, updateScheduleItem, deleteScheduleItem } from '../../utils/services/schedule';
 
 export default function ScheduleManager({ eventId }) {
   const [items, setItems] = useState([]);

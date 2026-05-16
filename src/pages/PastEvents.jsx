@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Camera, Video, Users, MapPin, Calendar, ChevronLeft, ChevronRight, X, ImageOff } from 'lucide-react';
-import { getPastEventMedia, getAllPastEvents } from '../utils/storage';
+import { getPastEventMedia, getAllPastEvents } from '../utils/services/media';
 import './PastEvents.css';
 
 // Static fallback data when no DB media exists

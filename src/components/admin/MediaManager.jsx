@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Video, Plus, X, Trash2, RefreshCw } from 'lucide-react';
-import { getPastEventMedia, addPastEventMedia, deletePastEventMedia } from '../../utils/storage';
+import { getPastEventMedia, addPastEventMedia, deletePastEventMedia } from '../../utils/services/media';
 
 export default function MediaManager() {
   const [media, setMedia] = useState([]);

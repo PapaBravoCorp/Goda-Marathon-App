@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Mail, Clock, Users, Filter, FileText, Eye, CheckCircle, AlertCircle } from 'lucide-react';
-import { getRegistrations, sendBulkEmail, getEmailLog, getEventCategories } from '../../utils/storage';
+import { Send, Mail, Clock, Users, Filter, FileText, Eye, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { getRegistrations } from '../../utils/services/registrations';
+import { getEventCategories } from '../../utils/services/categories';
+import { sendBulkEmail, getEmailLog, retryEmail, EmailStatus } from '../../utils/services/email';
 
 const TEMPLATES = [
   { id: 'confirm', name: 'Registration Confirmation', subject: 'Your Registration is Confirmed! 🏃', body: 'Dear Runner,\n\nThank you for registering for the GODA Epic Trail Run 2026!\n\nYour registration has been received and confirmed. Please keep this email for your records.\n\nSee you at the starting line!\n\nTeam GODA' },
@@ -9,7 +11,14 @@ const TEMPLATES = [
   { id: 'update', name: 'General Update', subject: 'Important Update from GODA Trail Run', body: 'Dear Runner,\n\n[Your message here]\n\nTeam GODA' },
 ];
 
-export default function NotificationsManager({ eventId }) {
+const STATUS_BADGE_MAP = {
+  [EmailStatus.QUEUED]:  { cls: 'admin-badge-pending', label: 'Queued' },
+  [EmailStatus.SENDING]: { cls: 'admin-badge-pending', label: 'Sending...' },
+  [EmailStatus.SENT]:    { cls: 'admin-badge-paid', label: 'Sent' },
+  [EmailStatus.FAILED]:  { cls: 'admin-badge-cancelled', label: 'Failed' },
+};
+
+export default function NotificationsManager({ eventUuid, eventSlug }) {
   const [categories, setCategories] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [emailLog, setEmailLog] = useState([]);
@@ -25,17 +34,17 @@ export default function NotificationsManager({ eventId }) {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  useEffect(() => { loadData(); }, [eventId]);
+  useEffect(() => { loadData(); }, [eventUuid, eventSlug]);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
       const [regs, cats, log] = await Promise.all([
-        getRegistrations(eventId),
-        getEventCategories(eventId),
+        getRegistrations(eventSlug),
+        eventUuid ? getEventCategories(eventUuid, eventSlug) : Promise.resolve([]),
         getEmailLog()
       ]);
-      setRegistrations(regs);
+      setRegistrations(Array.isArray(regs) ? regs : regs.data || []);
       setCategories(cats);
       setEmailLog(log);
     } catch (err) {
@@ -80,13 +89,29 @@ export default function NotificationsManager({ eventId }) {
         recipientFilter: { type: recipientFilter, category: filterCategory, status: filterStatus },
         recipientCount: count
       });
-      setSendResult({ type: 'success', message: `Email queued for ${count} recipient(s)!` });
+      setSendResult({ type: 'success', message: `Email sent to ${count} recipient(s)!` });
       setSubject(''); setBody('');
       await loadData();
     } catch (err) {
-      setSendResult({ type: 'error', message: 'Failed to send. Email has been logged.' });
+      // Email state machine tracks the failure — show explicit error
+      setSendResult({
+        type: 'error',
+        message: err.message || 'Email delivery failed. Check the Sent Log for details.'
+      });
+      await loadData(); // Refresh log to show FAILED entry
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleRetry = async (logId) => {
+    try {
+      await retryEmail(logId);
+      setSendResult({ type: 'success', message: 'Email retry succeeded!' });
+      await loadData();
+    } catch (err) {
+      setSendResult({ type: 'error', message: err.message || 'Retry failed.' });
+      await loadData();
     }
   };
 
@@ -110,7 +135,6 @@ export default function NotificationsManager({ eventId }) {
 
       {activeView === 'compose' && (
         <div className="admin-email-composer glass" style={{ padding: '1.5rem', borderRadius: '14px' }}>
-          {/* Template Selector */}
           <div className="admin-media-form-group" style={{ marginBottom: '1rem' }}>
             <label><FileText size={14} style={{ verticalAlign: 'middle', marginRight: '6px' }} />Load Template</label>
             <select onChange={e => applyTemplate(e.target.value)} defaultValue="">
@@ -119,7 +143,6 @@ export default function NotificationsManager({ eventId }) {
             </select>
           </div>
 
-          {/* Recipient Filter */}
           <div className="admin-email-recipients glass" style={{ padding: '1rem', borderRadius: '10px', marginBottom: '1rem' }}>
             <label style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Users size={14} /> Recipients
@@ -158,7 +181,6 @@ export default function NotificationsManager({ eventId }) {
             </div>
           </div>
 
-          {/* Subject & Body */}
           <div className="admin-media-form-group" style={{ marginBottom: '0.75rem' }}>
             <label>Subject *</label>
             <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject line..." />
@@ -175,7 +197,6 @@ export default function NotificationsManager({ eventId }) {
             </div>
           )}
 
-          {/* Actions */}
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button className="btn btn-outline admin-action-btn" onClick={() => setShowPreview(true)} disabled={!subject && !body} style={{ gap: '6px' }}>
               <Eye size={18} /> Preview
@@ -187,7 +208,6 @@ export default function NotificationsManager({ eventId }) {
         </div>
       )}
 
-      {/* Preview Modal */}
       {showPreview && (
         <div className="admin-modal-overlay" onClick={() => setShowPreview(false)}>
           <div className="admin-modal glass" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
@@ -210,7 +230,6 @@ export default function NotificationsManager({ eventId }) {
         </div>
       )}
 
-      {/* Email Log */}
       {activeView === 'log' && (
         <div className="glass" style={{ padding: '1.5rem', borderRadius: '14px' }}>
           {isLoading ? (
@@ -221,20 +240,40 @@ export default function NotificationsManager({ eventId }) {
             </div>
           ) : (
             <div className="admin-email-log">
-              {emailLog.map(entry => (
-                <div key={entry.id} className="admin-email-log-item">
-                  <div className="admin-email-log-header">
-                    <span className="admin-email-log-subject">{entry.subject}</span>
-                    <span className="admin-badge admin-badge-paid">{entry.recipient_count} sent</span>
-                  </div>
-                  <div className="admin-email-log-meta">
-                    <span><Clock size={12} /> {new Date(entry.sent_at).toLocaleString()}</span>
-                    {entry.filter_criteria && (
-                      <span><Filter size={12} /> {entry.filter_criteria.type || 'all'}</span>
+              {emailLog.map(entry => {
+                const statusInfo = STATUS_BADGE_MAP[entry.status] || STATUS_BADGE_MAP[EmailStatus.QUEUED];
+                return (
+                  <div key={entry.id} className="admin-email-log-item">
+                    <div className="admin-email-log-header">
+                      <span className="admin-email-log-subject">{entry.subject}</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                        <span className={`admin-badge ${statusInfo.cls}`}>{statusInfo.label}</span>
+                        <span className="admin-badge admin-badge-paid">{entry.recipient_count}</span>
+                      </div>
+                    </div>
+                    <div className="admin-email-log-meta">
+                      <span><Clock size={12} /> {new Date(entry.sent_at).toLocaleString()}</span>
+                      {entry.filter_criteria && (
+                        <span><Filter size={12} /> {entry.filter_criteria.type || 'all'}</span>
+                      )}
+                    </div>
+                    {entry.error_message && (
+                      <div style={{ marginTop: '6px', fontSize: '0.75rem', color: '#ff6b6b' }}>
+                        Error: {entry.error_message}
+                      </div>
+                    )}
+                    {entry.status === EmailStatus.FAILED && (
+                      <button
+                        className="admin-cat-action-btn"
+                        onClick={() => handleRetry(entry.id)}
+                        style={{ marginTop: '8px', gap: '4px' }}
+                      >
+                        <RefreshCw size={12} /> Retry
+                      </button>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
