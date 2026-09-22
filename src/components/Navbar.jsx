@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Lock, Menu, X } from 'lucide-react';
+import { Lock, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCurrentEvent } from '../utils/services/events';
 import './Navbar.css';
@@ -106,7 +106,7 @@ export default function Navbar() {
       <nav className={`navbar ${isScrolled ? 'is-scrolled' : ''}`}>
         <div className="container nav-container">
           <Link to="/" className="brand" aria-label="GODA home">
-            <span className="brand-mark" aria-hidden="true"><Activity size={20} strokeWidth={2.5} /></span>
+            <img className="brand-mark" src="/banner/logo-mark.png" alt="" aria-hidden="true" width="40" height="40" />
             <span className="brand-word">GODAVARI EXPEDITION<span className="brand-dot">.</span></span>
           </Link>
 
@@ -167,7 +167,7 @@ export default function Navbar() {
           >
             <div className="flex justify-between items-center mb-12">
               <Link to="/" className="brand">
-                <span className="brand-mark" aria-hidden="true"><Activity size={20} strokeWidth={2.5} /></span>
+                <img className="brand-mark" src="/banner/logo-mark.png" alt="" aria-hidden="true" width="40" height="40" />
                 <span className="brand-word">GODA<span className="brand-dot">.</span></span>
               </Link>
               <button 

@@ -47,21 +47,20 @@
 }
 
 .brand-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: rgba(69, 229, 44, 0.12);
-  border: 1px solid rgba(69, 229, 44, 0.28);
-  color: var(--color-primary);
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  display: block;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+  border: 2px solid rgba(69, 229, 44, 0.28);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .brand:hover .brand-mark {
-  background: rgba(69, 229, 44, 0.2);
-  border-color: rgba(69, 229, 44, 0.45);
+  border-color: rgba(69, 229, 44, 0.6);
+  transform: scale(1.05);
 }
 
 .brand-word {
