@@ -10,6 +10,7 @@
 .pe-hero {
   position: relative;
   min-height: calc(100vh - var(--navbar-height));
+  min-height: calc(100dvh - var(--navbar-height));
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -92,7 +93,7 @@
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
   min-height: 44px;
   font-family: var(--font-family);
 }
@@ -207,6 +208,13 @@
 
 .pe-gallery-item:hover .pe-gallery-caption {
   opacity: 1;
+}
+
+/* On touch devices there is no hover — keep captions visible */
+@media (hover: none) {
+  .pe-gallery-caption {
+    opacity: 1;
+  }
 }
 
 /* ========================================
@@ -459,4 +467,104 @@
   .pe-event-stats {
     gap: 1rem;
   }
+}
+
+/* ========================================
+   Showcase polish
+   ======================================== */
+
+/* Gallery tiles are <button> now — strip the UA chrome. */
+.pe-gallery-item {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: var(--color-bg-surface);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+/* Reserve space while the image decodes so the masonry does not reflow. */
+.pe-gallery-item img {
+  transition: transform 0.5s ease, opacity 0.4s ease;
+  background: var(--color-bg-surface);
+}
+
+.pe-gallery-skeleton {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: 12px;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.04) 30%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 70%
+  );
+  background-size: 200% 100%;
+  animation: pe-shimmer 1.4s ease-in-out infinite;
+}
+
+.pe-gallery-item--skeleton {
+  break-inside: avoid;
+  margin-bottom: 12px;
+  height: 180px;
+  border-radius: 12px;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.04) 30%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 70%
+  );
+  background-size: 200% 100%;
+  animation: pe-shimmer 1.4s ease-in-out infinite;
+}
+
+.pe-gallery-item--skeleton:nth-child(2n) { height: 240px; }
+.pe-gallery-item--skeleton:nth-child(3n) { height: 200px; }
+
+@keyframes pe-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pe-gallery-skeleton,
+  .pe-gallery-item--skeleton { animation: none; }
+}
+
+/* Caption is a <span> inside the button now. */
+.pe-gallery-caption {
+  display: block;
+}
+
+.pe-event-description {
+  max-width: 650px;
+  margin: 1.5rem auto 0;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+/* Lightbox caption row: text left, counter right */
+.pe-lightbox-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pe-lightbox-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* The hero background is set inline when an edition has a cover image;
+   this keeps the default when it does not. */
+.pe-hero-bg {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }

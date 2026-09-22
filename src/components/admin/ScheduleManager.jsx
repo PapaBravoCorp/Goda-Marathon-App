@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Trash2, Edit3, Clock } from 'lucide-react';
 import { getEventSchedule, addScheduleItem, updateScheduleItem, deleteScheduleItem } from '../../utils/services/schedule';
+import { describeSaveError } from '../../utils/services/errors';
 
 export default function ScheduleManager({ eventId }) {
   const [items, setItems] = useState([]);
@@ -13,14 +14,16 @@ export default function ScheduleManager({ eventId }) {
   const emptyForm = { time: '', title: '', day_label: '', display_order: 0 };
   const [formData, setFormData] = useState(emptyForm);
 
-  useEffect(() => { loadData(); }, [eventId]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
-    const data = await getEventSchedule(eventId);
-    setItems(data);
+    setItems(await getEventSchedule(eventId));
     setIsLoading(false);
-  };
+  }, [eventId]);
+
+  // Declared after loadData deliberately: a dependency array is evaluated
+  // during render, so naming it above its own `const` throws.
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleInput = (e) => {
     const { name, value } = e.target;
@@ -53,7 +56,7 @@ export default function ScheduleManager({ eventId }) {
       setEditingId(null);
       await loadData();
     } catch (err) {
-      setFormError('Failed to save. Please try again.');
+      setFormError(describeSaveError(err, 'schedule item'));
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +78,7 @@ export default function ScheduleManager({ eventId }) {
       await deleteScheduleItem(id);
       await loadData();
     } catch (err) {
-      console.error(err);
+      setFormError(describeSaveError(err, 'schedule item'));
     }
   };
 

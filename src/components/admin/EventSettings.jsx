@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, CheckCircle } from 'lucide-react';
-import { getCurrentEvent, updateEvent, invalidateEventCache } from '../../utils/services/events';
+import { getCurrentEvent, updateEvent } from '../../utils/services/events';
+import { describeSaveError } from '../../utils/services/errors';
 
 export default function EventSettings() {
   const [eventData, setEventData] = useState(null);
@@ -38,6 +39,8 @@ export default function EventSettings() {
         registration_open: eventData.registration_open,
         edition: eventData.edition,
         hero_image: eventData.hero_image,
+        hero_headline: eventData.hero_headline || null,
+        hero_subcopy: eventData.hero_subcopy || null,
         last_registration_date: eventData.last_registration_date || null,
         total_slots: eventData.total_slots ? parseInt(eventData.total_slots) : null,
         contact_email: eventData.contact_email || null,
@@ -45,7 +48,7 @@ export default function EventSettings() {
       });
       setSaveMsg('Event settings saved successfully!');
     } catch (err) {
-      setSaveMsg('Failed to save. Please try again.');
+      setSaveMsg(describeSaveError(err, 'event settings'));
     } finally {
       setIsSaving(false);
     }
@@ -111,6 +114,19 @@ export default function EventSettings() {
         <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
           <label htmlFor="evt-desc">Description</label>
           <textarea id="evt-desc" name="description" value={eventData.description || ''} onChange={handleInput} rows={3} style={{ resize: 'vertical' }} />
+        </div>
+
+        {/* Homepage Hero */}
+        <h4 className="admin-form-section-title" style={{ marginTop: '1.5rem' }}>Homepage Hero</h4>
+        <div className="admin-media-form-group">
+          <label htmlFor="evt-hero-headline">Hero Headline</label>
+          <input id="evt-hero-headline" name="hero_headline" value={eventData.hero_headline || ''} onChange={handleInput} placeholder="RUN BEYOND LIMITS" />
+          <span className="admin-field-hint">Displayed uppercase on the homepage. The last word is highlighted automatically.</span>
+        </div>
+        <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
+          <label htmlFor="evt-hero-subcopy">Hero Sub-copy</label>
+          <textarea id="evt-hero-subcopy" name="hero_subcopy" value={eventData.hero_subcopy || ''} onChange={handleInput} rows={3} style={{ resize: 'vertical' }} placeholder="Push past your limits at…" />
+          <span className="admin-field-hint">Paragraph under the headline. Falls back to Description if left empty.</span>
         </div>
 
         {/* Registration Config */}

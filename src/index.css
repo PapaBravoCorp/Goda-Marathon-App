@@ -1,36 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 
 :root {
   /* Layout Constants */
   --navbar-height: 80px;
 
   /* Colors */
-  --color-primary: #39FF14; /* Neon Green */
-  --color-primary-hover: #30df11;
+  --color-primary: #45E52C; /* Neon-ish green, softened from #39FF14 to reduce glare */
+  --color-primary-hover: #3ACB22;
   --color-accent: #FF6B00; /* Orange */
-  
+  --color-danger: #FF5C5C;
+
   --color-bg-base: #0B0B0B;
   --color-bg-surface: #1A1A1A;
   --color-bg-surface-light: #2A2A2A;
-  
+
   --color-text-main: #FFFFFF;
-  --color-text-muted: #A0A0A0;
-  
+  --color-text-muted: #A8A8A8; /* nudged lighter for contrast on dark surfaces */
+
   --color-border: #333333;
   --color-border-light: #444444;
 
+  /* Focus ring — deliberately not the brand green so focus never reads as a state */
+  --color-focus: #8AB4FF;
+
   /* Typography */
   --font-family: 'Inter', sans-serif;
-  
+
   /* Layout */
   --max-width: 1200px;
   --spacing-xs: 0.5rem;
@@ -41,15 +40,21 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
-  
+
+  /* Elevation / glow — kept subtle to avoid neon "vibration" on pure black */
+  --glow-sm: 0 0 12px rgba(69, 229, 44, 0.22);
+  --glow-md: 0 0 22px rgba(69, 229, 44, 0.32);
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.45);
+
   /* Transitions */
   --transition-fast: 0.2s ease;
   --transition-normal: 0.3s ease;
   --transition-bounce: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -62,11 +67,11 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
-html { 
-  scroll-behavior: smooth; 
+html {
+  scroll-behavior: smooth;
   scroll-padding-top: var(--navbar-height);
 }
 
@@ -80,6 +85,69 @@ html {
 .main-content {
   flex: 1;
   padding-top: calc(var(--navbar-height) + env(safe-area-inset-top));
+}
+
+/* ========================================
+   Skip link
+   The first thing a keyboard or screen-reader user reaches. Off-screen until
+   focused, then pinned over the navbar -- without it, every page begins with
+   six navigation links to tab past before reaching any content.
+   ======================================== */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -150%);
+  z-index: 2000;
+  padding: 12px 24px;
+  background: var(--color-primary);
+  color: #041400;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  transition: transform var(--transition-fast);
+}
+
+.skip-link:focus-visible {
+  transform: translate(-50%, 0);
+  outline-offset: -4px;
+}
+
+/* The target of the skip link is scrolled to, so keep it clear of the
+   fixed navbar. */
+#main-content {
+  scroll-margin-top: var(--navbar-height);
+}
+
+/* ========================================
+   Focus visibility
+   Keyboard focus must always be visible and must not rely on colour alone.
+   ======================================== */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ========================================
+   Reduced motion
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Typography Utilities */
@@ -100,6 +168,29 @@ p { margin-bottom: var(--spacing-sm); }
 .text-accent { color: var(--color-accent); }
 .text-center { text-align: center; }
 
+/* Spinner — used by every page-level loading state */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Screen-reader-only helper */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Layout Utilities */
 .container {
   max-width: var(--max-width);
@@ -113,6 +204,9 @@ p { margin-bottom: var(--spacing-sm); }
 .section {
   padding: var(--spacing-xl) 0;
 }
+@media (max-width: 767px) {
+  .section { padding: var(--spacing-lg) 0; }
+}
 
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
@@ -122,6 +216,7 @@ p { margin-bottom: var(--spacing-sm); }
 .gap-sm { gap: var(--spacing-sm); }
 .gap-md { gap: var(--spacing-md); }
 .gap-lg { gap: var(--spacing-lg); }
+.gap-xl { gap: var(--spacing-xl); }
 
 .grid { display: grid; }
 .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
@@ -152,12 +247,24 @@ input, select, textarea {
   border-radius: var(--radius-md);
   color: var(--color-text-main);
   font-family: var(--font-family);
-  transition: border-color var(--transition-fast);
+  font-size: 1rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--color-primary);
+  /* pair the colour change with a ring so focus is not communicated by hue alone */
+  box-shadow: 0 0 0 3px rgba(69, 229, 44, 0.18);
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
 }
 
 label {
@@ -172,14 +279,13 @@ label {
 /* Hero */
 .hero {
   position: relative;
-  min-height: 80vh;
-  min-height: 80dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   padding: var(--spacing-xl) 0;
   min-height: calc(100vh - var(--navbar-height));
+  min-height: calc(100dvh - var(--navbar-height));
 }
 .hero-bg {
   position: absolute;
@@ -196,12 +302,126 @@ label {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(180deg, rgba(11,11,11,0.4) 0%, rgba(11,11,11,1) 100%);
   z-index: -1;
+
+  /* Two layers instead of one flat wash. The radial darkens only behind the
+     headline, where contrast is needed; the linear keeps the top readable under
+     the transparent navbar and blends the bottom into the page. A uniform 40%
+     veil over the whole frame was what made the photograph look grey. */
+  background:
+    radial-gradient(90% 70% at 50% 42%,
+      rgba(11, 11, 11, 0.78) 0%,
+      rgba(11, 11, 11, 0.45) 45%,
+      rgba(11, 11, 11, 0.12) 75%,
+      transparent 100%),
+    linear-gradient(180deg,
+      rgba(11, 11, 11, 0.7) 0%,
+      rgba(11, 11, 11, 0.2) 22%,
+      rgba(11, 11, 11, 0.55) 68%,
+      var(--color-bg-base) 100%);
 }
 .hero-content {
   position: relative;
   z-index: 1;
+}
+
+/* ========================================
+   Compact hero — /event
+   The landing hero fills the viewport and centres its text, so its overlay is
+   a radial aimed at the middle of the frame. The event hero is half that
+   height with left-aligned copy, and that radial left the paragraph sitting on
+   bare photograph. On a bright, busy image the grey `.text-muted` it was
+   painted in measured barely 2:1 against the background behind it.
+
+   This variant drops the text to the foot of the image and darkens that band,
+   which keeps the photograph bright where there is nothing written on it.
+   ======================================== */
+.hero--compact {
+  min-height: 56vh;
+  min-height: 56dvh;
+  align-items: flex-end;
+  padding-top: var(--spacing-lg);
+  padding-bottom: var(--spacing-lg);
+  background-position: center;
+  background-size: cover;
+
+  /* Without this the overlay does not appear at all.
+     `.hero-overlay` sits at z-index: -1, and `.hero` is `position: relative`
+     with `z-index: auto`, which does NOT create a stacking context. The
+     negative-z overlay therefore escapes to the root stacking context and
+     paints BEHIND this element's own background image -- invisible. The
+     landing hero gets away with it because its photo is an <img> that escapes
+     the same way, one layer further back; this one carries the photo as a
+     background, so the overlay had nothing to sit on top of.
+
+     `isolation: isolate` makes this element a stacking context, so the overlay
+     is painted above its background and below its content, which is what the
+     z-indexes were always meant to express. */
+  isolation: isolate;
+}
+
+/* Stated explicitly rather than leaning on negative-z painting order, so the
+   layering survives anyone editing these rules later. */
+.hero--compact .hero-overlay {
+  z-index: 1;
+}
+
+.hero--compact .hero-content {
+  z-index: 2;
+}
+
+.hero--compact .hero-overlay {
+  background:
+    /* Left wash: the copy is left-aligned inside the container, and a purely
+       vertical gradient is not enough where the photo is brightest. */
+    linear-gradient(90deg,
+      rgba(11, 11, 11, 0.66) 0%,
+      rgba(11, 11, 11, 0.44) 45%,
+      rgba(11, 11, 11, 0.12) 78%,
+      rgba(11, 11, 11, 0.04) 100%),
+    /* Vertical: dark under the navbar, clearest around a quarter of the way
+       down where nothing is written, then deepening through the headline and
+       standfirst before blending into the page.
+
+       The stops are not guesses. Each band was rendered with the text hidden
+       and sampled for WCAG contrast against the colour actually painted over
+       it; the 95th-percentile and brightest-pixel figures are what moved
+       these numbers. */
+    linear-gradient(180deg,
+      rgba(11, 11, 11, 0.62) 0%,
+      rgba(11, 11, 11, 0.16) 22%,
+      rgba(11, 11, 11, 0.42) 42%,
+      rgba(11, 11, 11, 0.58) 62%,
+      rgba(11, 11, 11, 0.82) 88%,
+      var(--color-bg-base) 100%);
+}
+
+/* A shadow rather than a heavier overlay: it lifts the text off whatever is
+   directly behind it without dulling the whole photograph. */
+.hero--compact h1 {
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.75), 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* The standfirst under a hero headline. Was `.text-muted`, a mid grey meant
+   for body copy on the dark page background, not for text over a photograph. */
+.hero-lede {
+  color: #EDEDED;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  max-width: 620px;
+  margin-bottom: 0;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.85), 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 640px) {
+  .hero--compact {
+    min-height: 62vh;
+    min-height: 62dvh;
+  }
+
+  .hero-lede {
+    font-size: 1.05rem;
+  }
 }
 
 /* Badges & Text Options */
@@ -214,12 +434,12 @@ label {
   text-transform: uppercase;
 }
 .badge-primary {
-  background-color: rgba(57, 255, 20, 0.1);
+  background-color: rgba(69, 229, 44, 0.1);
   color: var(--color-primary);
-  border: 1px solid rgba(57, 255, 20, 0.3);
+  border: 1px solid rgba(69, 229, 44, 0.3);
 }
 .gradient-text {
-  background: linear-gradient(90deg, var(--color-primary) 0%, #00ffcc 100%);
+  background: linear-gradient(100deg, var(--color-primary) 0%, #9BFF7A 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -235,13 +455,13 @@ label {
   justify-content: center;
   font-weight: 700;
   border-radius: var(--radius-full);
-  transition: all 0.3s ease;
+  transition: background-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal), color var(--transition-normal);
   cursor: pointer;
   border: none;
   text-decoration: none;
   padding: 12px 24px;
   min-height: 44px;
-  width: 100%; 
+  width: 100%;
 }
 
 @media (min-width: 768px) {
@@ -252,24 +472,45 @@ label {
 .btn:hover {
   transform: translateY(-2px);
 }
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 .btn-primary {
   background-color: var(--color-primary);
   color: #000;
-  box-shadow: 0 0 15px rgba(57,255,20,0.4);
+  box-shadow: var(--glow-sm);
 }
 .btn-primary:hover {
   background-color: var(--color-primary-hover);
-  box-shadow: 0 0 25px rgba(57,255,20,0.6);
-  transform: scale(1.05) translateY(-2px);
+  box-shadow: var(--glow-md);
+  transform: translateY(-2px);
 }
 .btn-outline {
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.04);
   color: var(--color-text-main);
-  border: 2px solid var(--color-text-main);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 .btn-outline:hover {
   background-color: var(--color-text-main);
+  border-color: var(--color-text-main);
   color: #000;
+}
+
+/* Declared in Button.jsx's variant list but never given styles until now. */
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-text-main);
+  border: none;
+}
+.btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-primary);
 }
 
 /* Cards */
@@ -278,19 +519,19 @@ label {
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--color-border);
-  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
   height: 100%;
 }
 .card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 15px 40px rgba(57, 255, 20, 0.25);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card);
   border-color: var(--color-primary);
 }
 .card-icon {
   transition: transform var(--transition-bounce), color var(--transition-fast);
 }
 .card:hover .card-icon {
-  transform: scale(1.2) translateY(-4px);
+  transform: scale(1.15) translateY(-3px);
   color: var(--color-primary);
 }
 .card-img-wrapper {
@@ -353,6 +594,46 @@ label {
   font-size: 0.9rem;
 }
 
+.copyright p {
+  margin-bottom: 12px;
+}
+
+/* Policy links, reachable from every page. */
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 20px;
+}
+
+.footer-legal a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: color var(--transition-fast);
+}
+
+.footer-legal a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The dashboard is a staff tool, not a visitor destination -- present but
+   visually quieter than the policy links beside it. */
+.footer-legal .footer-admin-link {
+  opacity: 0.55;
+}
+
+/* The heading level was <h4> in each footer column, jumping from the page's
+   <h1> straight to <h4> and leaving a gap a screen-reader user navigating by
+   heading has to step over. They are <h2> now; this keeps the size. */
+.footer h2.footer-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
 /* Event Details Layout */
 .event-layout {
   display: flex;
@@ -393,6 +674,25 @@ label {
   flex: 1 1 100%;
   min-width: 0;
 }
+
+/* The select sets appearance:none inline, which removes the native arrow.
+   Without a replacement the field no longer reads as a dropdown. */
+.results-filters .filter-category select {
+  padding-right: 38px;
+}
+
+.results-filters .filter-category::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
 @media (min-width: 768px) {
   .results-filters .filter-search { flex: 2 1 0; }
   .results-filters .filter-category { flex: 1 1 0; }
@@ -412,4 +712,538 @@ label {
   /* Desktop: hide cards, show table */
   .results-cards { display: none; }
   .results-table-desktop { display: block; }
+}
+
+/* Native date/time pickers render light-on-light without this — the calendar
+   icon and the dropdown panel both come from the browser, not from our CSS. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+select {
+  color-scheme: dark;
+}
+
+/* The open dropdown is painted by the OS, outside the page's styling. Options
+   inherit the control's white text but sit on the popup's default white
+   background, so they are invisible until the hover highlight lands on them.
+   color-scheme above handles Chromium; these declarations cover the rest. */
+select option,
+select optgroup {
+  background-color: var(--color-bg-surface-light);
+  color: var(--color-text-main);
+}
+
+/* A disabled first option is a placeholder, not a choice — mute it. */
+select option:disabled {
+  color: var(--color-text-muted);
+}
+
+/* Safari/Chrome keep an inner spin area on date inputs that clips the value. */
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity var(--transition-fast);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* ========================================
+   Homepage stat band
+   Flex rather than a fixed 4-column grid: the number of stats varies with how
+   much of the event is configured, and a centred row reads as deliberate at
+   any count.
+   ======================================== */
+.stat-band {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem 3.5rem;
+  text-align: center;
+}
+
+.stat-band-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 110px;
+}
+
+.stat-band-value {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -1px;
+  color: var(--color-primary);
+}
+
+.stat-band-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--color-text-muted);
+}
+
+/* ========================================
+   Category cards
+   ======================================== */
+.cat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-md);
+}
+
+/* Cards share the row but never stretch absurdly wide when there are only one
+   or two — the old 3-column grid left a single card stranded at the left edge. */
+.cat-grid > * {
+  flex: 1 1 300px;
+  max-width: 380px;
+  min-width: 0;
+}
+
+.cat-card {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: transform var(--transition-normal),
+              border-color var(--transition-normal),
+              box-shadow var(--transition-normal);
+}
+
+.cat-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+}
+
+/* Distance-forward header. Replaces the photo that used to sit here: with no
+   per-category image, every card fell back to the same hero shot. */
+.cat-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--color-border);
+  background:
+    radial-gradient(130% 150% at 0% 0%, rgba(69, 229, 44, 0.16), transparent 62%),
+    var(--color-bg-surface-light);
+}
+
+.cat-card-distance {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--color-primary) 0%, #00ffcc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.cat-card-status {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cat-card-status.is-open {
+  background: rgba(69, 229, 44, 0.12);
+  border: 1px solid rgba(69, 229, 44, 0.35);
+  color: var(--color-primary);
+}
+
+.cat-card-status.is-closed {
+  background: rgba(255, 107, 0, 0.12);
+  border: 1px solid rgba(255, 107, 0, 0.35);
+  color: var(--color-accent);
+}
+
+.cat-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 20px 24px 0;
+}
+
+.cat-card-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.cat-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.cat-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cat-card-meta svg { color: var(--color-primary); }
+
+/* Price was missing from these cards entirely — it is the first thing a runner
+   looks for. */
+.cat-card-price {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cat-card-perks {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cat-card-perks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.cat-card-perks svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.cat-card-scarcity {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.cat-card-route {
+  margin-top: auto;
+  padding-top: 4px;
+  padding-bottom: 16px;
+}
+
+.cat-card-route-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.cat-card-route-toggle:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.cat-card-route-img {
+  width: 100%;
+  margin-top: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.cat-card-foot {
+  padding: 0 24px 24px;
+  margin-top: auto;
+}
+
+/* ========================================
+   FAQ accordion
+   ======================================== */
+.faq-list {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.faq-item {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color var(--transition-normal);
+}
+
+.faq-item:hover {
+  border-color: rgba(69, 229, 44, 0.3);
+}
+
+/* A button, not a div — keyboard reachable and announced as expandable. */
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 22px 24px;
+  background: none;
+  border: none;
+  color: var(--color-text-main);
+  font-family: var(--font-family);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.faq-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--color-primary);
+  transition: transform var(--transition-normal), background var(--transition-normal), color var(--transition-normal);
+}
+
+.faq-chevron.is-open {
+  transform: rotate(180deg);
+  background: var(--color-primary);
+  color: #000;
+}
+
+.faq-answer {
+  padding: 0 24px 24px;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+/* ========================================
+   Testimonials
+   ======================================== */
+.testimonial-carousel {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.testimonial-card {
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  text-align: center;
+  margin: 0;
+}
+
+.testimonial-stars {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 24px;
+  color: var(--color-primary);
+}
+
+.testimonial-quote {
+  margin: 0 0 32px;
+  font-size: 1.2rem;
+  font-style: italic;
+  line-height: 1.7;
+}
+
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+/* Initials rather than an empty grey disc when no photo is set. */
+.testimonial-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(69, 229, 44, 0.12);
+  border: 1px solid rgba(69, 229, 44, 0.3);
+  color: var(--color-primary);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+.testimonial-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.testimonial-author-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.testimonial-author-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.testimonial-author-role {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.testimonial-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.testimonial-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-light);
+  background: transparent;
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.testimonial-nav-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.testimonial-counter {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 48px;
+  text-align: center;
+}
+
+/* ========================================
+   "More than just a race" section
+   The previous markup used a `gap-xl` class that existed neither in this file
+   nor in Tailwind's numeric gap scale, so the two columns sat flush against
+   each other with no gutter at all.
+   ======================================== */
+.why-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+/* Two columns only once there is room for them. At 768px the heading and the
+   image were each squeezed into roughly 340px, which is what made this read as
+   cramped even before the missing gutter. */
+@media (min-width: 900px) {
+  .why-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(2.5rem, 5vw, 4.5rem);
+  }
+}
+
+.why-media img {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.why-body { min-width: 0; }
+
+.why-title {
+  font-size: clamp(1.75rem, 3.2vw, 2.4rem);
+  line-height: 1.2;
+  margin-bottom: 2rem;
+  text-wrap: balance;
+}
+
+.why-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+.why-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.15rem;
+}
+
+.why-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(69, 229, 44, 0.1);
+  border: 1px solid rgba(69, 229, 44, 0.22);
+  color: var(--color-primary);
+}
+
+.why-item h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.why-item p {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+@media (max-width: 480px) {
+  .why-icon { width: 46px; height: 46px; border-radius: 12px; }
+  .why-item { gap: 0.9rem; }
+  .why-list { gap: 1.35rem; }
 }

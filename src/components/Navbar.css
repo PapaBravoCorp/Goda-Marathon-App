@@ -1,79 +1,232 @@
+/* ========================================
+   Navbar
+   ======================================== */
 .navbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  width: 100%;
   height: var(--navbar-height);
   z-index: 1000;
-  transition: background-color var(--transition-normal);
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  overflow: visible;
+
+  /* Transparent at rest so the hero photo runs under it; a frosted bar with a
+     hairline appears once the page scrolls. */
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background-color var(--transition-normal),
+              border-color var(--transition-normal),
+              backdrop-filter var(--transition-normal);
+}
+
+.navbar.is-scrolled {
+  background-color: rgba(11, 11, 11, 0.72);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .nav-container {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   width: 100%;
 }
 
+/* ── Brand ────────────────────────────────────────────────────────────── */
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1.5rem;
-  font-weight: 900;
-  text-decoration: none;
-  color: var(--color-text-main);
-  letter-spacing: -1px;
-}
-
-.nav-links {
-  display: none;
-  gap: var(--spacing-md);
-  align-items: center;
-}
-
-@media (min-width: 768px) {
-  .nav-links {
-    display: flex;
-  }
-}
-
-.nav-link {
-  color: var(--color-text-main);
-  text-decoration: none;
-  font-weight: 500;
-  padding: 12px 16px;
-  min-height: 44px;
   display: inline-flex;
   align-items: center;
-  transition: color var(--transition-fast);
+  gap: 10px;
+  text-decoration: none;
+  color: var(--color-text-main);
+  flex-shrink: 0;
 }
 
-.nav-link:hover, .nav-link.active {
-  color: var(--color-primary);
-}
-
-/* Mobile menu toggle button */
-.mobile-menu-btn {
+.brand-mark {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: none;
-  border: none;
-  color: var(--color-text-main);
-  cursor: pointer;
-  min-height: 44px;
-  min-width: 44px;
-  padding: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(69, 229, 44, 0.12);
+  border: 1px solid rgba(69, 229, 44, 0.28);
+  color: var(--color-primary);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-@media (min-width: 768px) {
-  .mobile-menu-btn {
-    display: none;
-  }
+.brand:hover .brand-mark {
+  background: rgba(69, 229, 44, 0.2);
+  border-color: rgba(69, 229, 44, 0.45);
+}
+
+.brand-word {
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.brand-dot { color: var(--color-primary); }
+
+/* ── Links ────────────────────────────────────────────────────────────── */
+.nav-links {
+  display: none;
+  align-items: center;
+  gap: 2px;
+}
+
+@media (min-width: 900px) {
+  .nav-links { display: flex; }
+}
+
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 14px;
+  border-radius: var(--radius-full);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.nav-link:hover {
+  color: var(--color-text-main);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* The current page reads as a filled pill rather than a coloured word, and
+   carries aria-current for anyone not relying on the visual. */
+.nav-link.active {
+  color: var(--color-primary);
+  background-color: rgba(69, 229, 44, 0.12);
+}
+
+/* ── Actions ──────────────────────────────────────────────────────────── */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Deliberately not .btn: the header CTA wants tighter padding and far less
+   glow than the page-level buttons. */
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: #000;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.nav-cta:hover {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.nav-cta--muted {
+  background-color: transparent;
+  color: var(--color-text-main);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.nav-cta--muted:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.nav-icon-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+@media (min-width: 900px) {
+  .nav-icon-btn { display: inline-flex; }
+}
+
+.nav-icon-btn:hover {
+  color: var(--color-primary);
+  border-color: rgba(69, 229, 44, 0.4);
+  background-color: rgba(69, 229, 44, 0.08);
+}
+
+/* ── Mobile trigger ───────────────────────────────────────────────────── */
+.mobile-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: none;
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.mobile-menu-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+@media (min-width: 900px) {
+  .mobile-menu-btn { display: none; }
+}
+
+/* Below the desktop breakpoint the header CTA would crowd the menu button. */
+@media (max-width: 480px) {
+  .nav-cta { display: none; }
+}
+
+/* Close button in the full-screen mobile menu.
+   Was styled with `hover:text-primary`, a Tailwind variant of a class that
+   Tailwind does not generate here -- `text-primary` is hand-written in
+   index.css and this project defines no custom colours in tailwind.config.js,
+   so the hover state silently did nothing. */
+.mobile-menu-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.mobile-menu-close:hover {
+  color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.1);
 }

@@ -5,7 +5,7 @@ import { MapPin, Calendar, Clock, Award, Info, Loader } from 'lucide-react';
 import { getCurrentEvent } from '../utils/services/events';
 import { getEventCategories } from '../utils/services/categories';
 import { getEventSchedule } from '../utils/services/schedule';
-import { CURRENT_EVENT } from '../utils/constants';
+import Seo from '../components/Seo';
 
 // Hardcoded fallback if DB fetch fails
 const FALLBACK_EVENT = {
@@ -16,7 +16,7 @@ const FALLBACK_EVENT = {
   location: 'Girnare, Nashik',
   venue: 'Palmstays, Nagalwadi, Girnare, Nashik',
   hero_image: '/images/trail_hero.png',
-  description: 'Join us on the 9th August 2026 for the 3rd Edition of Goda Trail Run, hosted in the scenic Gangapur Backwaters, Nashik.',
+  description: 'Join us on the 20th December 2026 for the 3rd Edition of Goda Trail Run, hosted in the scenic Gangapur Backwaters, Nashik.',
   registration_open: true,
   categories: [
     { name: '2km Trail', distance: '2km', elevation: '0m', price: 299, status: 'Open', flag_off: '07:15 AM' },
@@ -68,7 +68,7 @@ export default function EventDetails() {
       // Use event UUID for new table queries
       if (data?.id) {
         const [cats, sched] = await Promise.all([
-          getEventCategories(data.id, CURRENT_EVENT.slug),
+          getEventCategories(data.id, data.id),
           getEventSchedule(data.id)
         ]);
         setDbCategories(cats);
@@ -111,10 +111,20 @@ export default function EventDetails() {
 
   return (
     <div>
-      {/* Hero */}
-      <div className="hero" style={{ minHeight: '50vh', background: `url(${e.hero_image || '/images/trail_hero.png'}) center/cover` }}>
+      <Seo
+        title={`Event Details — ${e.name}`}
+        description={e.description || `Race information, schedule and categories for ${e.name}.`}
+        image={e.hero_image}
+      />
+      {/* Hero.
+          `hero--compact` carries the height and the overlay; only the image
+          itself stays inline, because it comes from the event row. */}
+      <div
+        className="hero hero--compact"
+        style={{ backgroundImage: `url(${e.hero_image || '/images/trail_hero.png'})` }}
+      >
         <div className="hero-overlay"></div>
-        <div className="container" style={{ position: 'relative' }}>
+        <div className="container hero-content">
           <h1 style={{ marginBottom: '16px' }}>
             {e.name ? (
               <>
@@ -126,7 +136,7 @@ export default function EventDetails() {
               <>Goda Epic <span className="accent-text">Trail</span></>
             )}
           </h1>
-          <p className="text-muted" style={{ fontSize: '1.25rem', maxWidth: '600px' }}>
+          <p className="hero-lede">
             {e.description}
           </p>
         </div>
@@ -249,6 +259,9 @@ export default function EventDetails() {
                   }}>
                     <span>
                       {cat.name}
+                      {cat.price != null && (
+                        <span className="text-muted" style={{ fontSize: '0.8rem' }}> — {formatPrice(cat.price)}</span>
+                      )}
                       {cat.elevation && cat.elevation !== '0m' && (
                         <span className="text-muted" style={{ fontSize: '0.8rem' }}> (Elev: {cat.elevation})</span>
                       )}

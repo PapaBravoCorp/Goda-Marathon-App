@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Send, Mail, Clock, Users, Filter, FileText, Eye, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { getRegistrations } from '../../utils/services/registrations';
 import { getEventCategories } from '../../utils/services/categories';
@@ -34,9 +34,8 @@ export default function NotificationsManager({ eventUuid, eventSlug }) {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  useEffect(() => { loadData(); }, [eventUuid, eventSlug]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [regs, cats, log] = await Promise.all([
@@ -48,11 +47,15 @@ export default function NotificationsManager({ eventUuid, eventSlug }) {
       setCategories(cats);
       setEmailLog(log);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load notification data', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [eventSlug, eventUuid]);
+
+  // Declared after loadData deliberately: a dependency array is evaluated
+  // during render, so naming it above its own `const` throws.
+  useEffect(() => { loadData(); }, [loadData]);
 
   const getRecipientCount = () => {
     let recipients = registrations.filter(r => r.payment_status !== 'CANCELLED');
@@ -87,7 +90,8 @@ export default function NotificationsManager({ eventUuid, eventSlug }) {
       await sendBulkEmail({
         subject, body,
         recipientFilter: { type: recipientFilter, category: filterCategory, status: filterStatus },
-        recipientCount: count
+        recipientCount: count,
+        eventId: eventSlug,
       });
       setSendResult({ type: 'success', message: `Email sent to ${count} recipient(s)!` });
       setSubject(''); setBody('');

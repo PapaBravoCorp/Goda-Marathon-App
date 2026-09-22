@@ -6,7 +6,7 @@ import EditRegistrationModal from './EditRegistrationModal';
 
 const PAGE_SIZE = 50;
 
-export default function RegistrationManager({ eventSlug, eventUuid, eventName }) {
+export default function RegistrationManager({ eventSlug, eventUuid }) {
   const [registrations, setRegistrations] = useState([]);
   const [categories, setCategories] = useState([]);
   const [stats, setStats] = useState({ totalRegistrations: 0, revenue: 0 });
@@ -28,8 +28,6 @@ export default function RegistrationManager({ eventSlug, eventUuid, eventName })
 
   // Reset to page 0 when filters change
   useEffect(() => { setCurrentPage(0); }, [debouncedSearch, categoryFilter, statusFilter]);
-
-  useEffect(() => { fetchData(); }, [eventSlug, eventUuid, currentPage, debouncedSearch, categoryFilter, statusFilter]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -59,7 +57,18 @@ export default function RegistrationManager({ eventSlug, eventUuid, eventName })
     }
   }, [eventSlug, eventUuid, currentPage, debouncedSearch, categoryFilter, statusFilter]);
 
-  const handleExport = async () => { await exportToCSV(eventSlug); };
+  // Declared after fetchData on purpose: a dependency array is evaluated during
+  // render, so referencing it above its own `const` would throw.
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const [exportMsg, setExportMsg] = useState('');
+  const handleExport = async () => {
+    const result = await exportToCSV(eventSlug);
+    // The service used to call alert() from inside a data layer. It now
+    // reports back and the component decides how to say it.
+    setExportMsg(result.ok ? `Exported ${result.count} registrations.` : result.message);
+    setTimeout(() => setExportMsg(''), 4000);
+  };
 
   const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 
@@ -146,17 +155,17 @@ export default function RegistrationManager({ eventSlug, eventUuid, eventName })
         <div className="glass admin-stat-card">
           <div className="admin-stat-icon text-accent"><IndianRupee size={22} /></div>
           <div className="admin-stat-body">
-            <span className="admin-stat-label">Total Revenue</span>
+            <span className="admin-stat-label">Confirmed Revenue</span>
             <span className="admin-stat-value">{formatCurrency(stats.revenue)}</span>
+            <span className="admin-stat-note">{stats.paidCount} paid entries</span>
           </div>
         </div>
         <div className="glass admin-stat-card">
-          <div className="admin-stat-icon" style={{ color: 'var(--color-text-muted)' }}><Activity size={22} /></div>
+          <div className="admin-stat-icon" style={{ color: 'var(--color-accent)' }}><Activity size={22} /></div>
           <div className="admin-stat-body">
-            <span className="admin-stat-label">System Status</span>
-            <span className="admin-stat-value admin-status-value">
-              <span className="admin-status-dot"></span> Operational
-            </span>
+            <span className="admin-stat-label">Awaiting Payment</span>
+            <span className="admin-stat-value">{stats.pendingCount}</span>
+            <span className="admin-stat-note">Chase these before race day</span>
           </div>
         </div>
       </div>
@@ -171,6 +180,9 @@ export default function RegistrationManager({ eventSlug, eventUuid, eventName })
           <Download size={18} />
           <span className="admin-action-label">Export CSV</span>
         </button>
+        {exportMsg && (
+          <span className="admin-export-msg" role="status">{exportMsg}</span>
+        )}
       </div>
 
       {/* Bulk Action Bar */}

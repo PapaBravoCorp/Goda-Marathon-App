@@ -1,79 +1,106 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getPublishedTestimonials } from '../utils/services/content';
 
-const TESTIMONIALS = [
-  {
-    id: 1,
-    text: "The energy at the starting line was absolute electric. Best organized marathon I've ever ran. Will definitely be returning next year to beat my PR.",
-    name: "Alex Johnson",
-    subtitle: "2-Time Marathon Finisher"
-  },
-  {
-    id: 2,
-    text: "Pristine trails, excellent aid stations, and the community is just so welcoming. Reaching the peak of the 15km was visually stunning.",
-    name: "Maria Garcia",
-    subtitle: "Trail Runner Enthusiast"
-  },
-  {
-    id: 3,
-    text: "As a beginner, the 5km route was perfect. The organization was top-notch, and receiving the custom medal felt like a true achievement.",
-    name: "Rahul Verma",
-    subtitle: "First-time Runner"
-  }
-];
+/** Initials stand in for a missing photo — better than an empty grey disc. */
+function initialsOf(name) {
+  return String(name || '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase() || '')
+    .join('');
+}
 
 export function TestimonialCarousel() {
+  const [testimonials, setTestimonials] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const nextSlide = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === TESTIMONIALS.length - 1 ? 0 : prevIndex + 1));
-  };
+  useEffect(() => {
+    let cancelled = false;
+    getPublishedTestimonials()
+      .then(rows => { if (!cancelled) setTestimonials(rows); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
-  const prevSlide = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === 0 ? TESTIMONIALS.length - 1 : prevIndex - 1));
-  };
+  // Renders nothing at all when there is nothing genuine to show, so the
+  // landing page never displays placeholder praise.
+  if (isLoading || testimonials.length === 0) return null;
+
+  const total = testimonials.length;
+  const current = testimonials[Math.min(currentIndex, total - 1)];
+  const next = () => setCurrentIndex(i => (i + 1) % total);
+  const prev = () => setCurrentIndex(i => (i - 1 + total) % total);
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: '800px', margin: '0 auto', overflow: 'hidden', paddingBottom: '60px' }}>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIndex}
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ duration: 0.3 }}
-          className="glass"
-          style={{ padding: '40px', borderRadius: '16px', textAlign: 'center' }}
-        >
-          <div className="flex gap-sm justify-center text-primary" style={{ marginBottom: '24px' }}>
-            <Star size={24} fill="#39FF14" />
-            <Star size={24} fill="#39FF14" />
-            <Star size={24} fill="#39FF14" />
-            <Star size={24} fill="#39FF14" />
-            <Star size={24} fill="#39FF14" />
-          </div>
-          <p style={{ fontSize: '1.25rem', fontStyle: 'italic', marginBottom: '32px' }}>
-            "{TESTIMONIALS[currentIndex].text}"
-          </p>
-          <div className="flex flex-col items-center gap-sm">
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#333', marginBottom: '8px' }}></div>
-            <div>
-              <h4 style={{ fontSize: '1.125rem', margin: 0 }}>{TESTIMONIALS[currentIndex].name}</h4>
-              <span className="text-muted" style={{ fontSize: '0.9rem' }}>{TESTIMONIALS[currentIndex].subtitle}</span>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+    <section className="section">
+      <div className="container">
+        <h2 className="text-center" style={{ fontSize: '2.5rem', marginBottom: '60px' }}>
+          Join Our <span className="accent-text">Community</span>
+        </h2>
 
-      <div style={{ display: 'flex', justifyCenter: 'center', gap: '16px', marginTop: '24px', position: 'absolute', bottom: '0', left: '50%', transform: 'translateX(-50%)' }}>
-        <button onClick={prevSlide} className="btn-outline flex items-center justify-center" style={{ width: '40px', height: '40px', borderRadius: '50%' }}>
-          <ChevronLeft size={20} />
-        </button>
-        <button onClick={nextSlide} className="btn-outline flex items-center justify-center" style={{ width: '40px', height: '40px', borderRadius: '50%' }}>
-          <ChevronRight size={20} />
-        </button>
+        <div className="testimonial-carousel">
+          <AnimatePresence mode="wait">
+            <motion.figure
+              key={current.id}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.3 }}
+              className="glass testimonial-card"
+            >
+              {current.rating > 0 && (
+                <div className="testimonial-stars" aria-label={`${current.rating} out of 5 stars`}>
+                  {Array.from({ length: current.rating }).map((_, i) => (
+                    <Star key={i} size={20} fill="currentColor" aria-hidden="true" />
+                  ))}
+                </div>
+              )}
+
+              <blockquote className="testimonial-quote">{current.quote}</blockquote>
+
+              <figcaption className="testimonial-author">
+                <span className="testimonial-avatar" aria-hidden="true">
+                  {current.avatar_image
+                    ? <img src={current.avatar_image} alt="" />
+                    : initialsOf(current.author_name)}
+                </span>
+                <span className="testimonial-author-text">
+                  <span className="testimonial-author-name">{current.author_name}</span>
+                  {current.author_role && (
+                    <span className="testimonial-author-role">{current.author_role}</span>
+                  )}
+                </span>
+              </figcaption>
+            </motion.figure>
+          </AnimatePresence>
+
+          {total > 1 && (
+            <div className="testimonial-nav">
+              <button
+                type="button"
+                onClick={prev}
+                className="testimonial-nav-btn"
+                aria-label="Previous testimonial"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className="testimonial-counter">{currentIndex + 1} / {total}</span>
+              <button
+                type="button"
+                onClick={next}
+                className="testimonial-nav-btn"
+                aria-label="Next testimonial"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

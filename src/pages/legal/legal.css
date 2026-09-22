@@ -1,0 +1,140 @@
+/* Policy and contact pages — long-form reading, not marketing. */
+
+.legal-page {
+  padding: calc(var(--navbar-height) + 48px) 0 96px;
+}
+
+.legal-container {
+  /* ~70 characters per line. Full-width body text on a 1200px container is
+     hard to track back to the start of the next line. */
+  max-width: 760px;
+}
+
+.legal-header {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 24px;
+  margin-bottom: 40px;
+}
+
+.legal-header h1 {
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  margin-bottom: 12px;
+}
+
+.legal-updated {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.legal-body {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #D9D9D9;
+}
+
+.legal-body h2 {
+  font-size: 1.25rem;
+  margin: 40px 0 14px;
+  color: var(--color-text-main);
+}
+
+.legal-body h2:first-child {
+  margin-top: 0;
+}
+
+.legal-body h3 {
+  font-size: 1.05rem;
+  margin: 26px 0 10px;
+  color: var(--color-text-main);
+}
+
+.legal-body p {
+  margin-bottom: 16px;
+}
+
+.legal-body ul,
+.legal-body ol {
+  margin: 0 0 18px 0;
+  padding-left: 22px;
+}
+
+.legal-body li {
+  margin-bottom: 9px;
+}
+
+.legal-body a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.legal-body strong {
+  color: var(--color-text-main);
+}
+
+.legal-callout {
+  border-left: 3px solid var(--color-accent);
+  background: rgba(255, 107, 0, 0.07);
+  padding: 16px 20px;
+  border-radius: 0 8px 8px 0;
+  margin: 24px 0;
+}
+
+.legal-callout p:last-child {
+  margin-bottom: 0;
+}
+
+/* Definition-style contact block. */
+.legal-contact-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+}
+
+.legal-contact-list li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.legal-contact-list li:last-child {
+  border-bottom: none;
+}
+
+.legal-contact-list svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.legal-contact-label {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.legal-toc {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 40px;
+}
+
+.legal-toc h2 {
+  font-size: 0.8rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin: 0 0 12px !important;
+}
+
+.legal-toc ol {
+  margin-bottom: 0;
+}

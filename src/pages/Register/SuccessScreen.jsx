@@ -1,48 +1,83 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../../components/Button';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Clock } from 'lucide-react';
 
-export default function SuccessScreen({ formData, eventName }) {
-  // Generate a mock registration ID
-  const regId = `GODA-${Math.floor(100000 + Math.random() * 900000)}`;
+/**
+ * Shown after the entry is saved.
+ *
+ * `registration` is the row Supabase returned, so the bib and category are the
+ * real stored values. The previous version invented a reference with
+ * Math.random() — a number support could never look up — and told the runner a
+ * confirmation email had been sent when nothing sends one.
+ */
+export default function SuccessScreen({ registration, eventName, contactEmail, contactPhone }) {
+  const bib = registration?.bib;
+  const isPending = (registration?.payment_status || 'PENDING') === 'PENDING';
 
   return (
-    <div className="text-center py-10">
-      <CheckCircle size={80} className="text-primary mx-auto mb-6" />
-      <h2 className="text-4xl font-extrabold text-white mb-4">Registration Confirmed!</h2>
-      
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6 max-w-md mx-auto mb-8 text-left">
-        <div className="border-b border-white/10 pb-4 mb-4">
-          <p className="text-sm text-gray-400 mb-1">Registration ID</p>
-          <p className="text-xl font-mono text-white font-bold">{regId}</p>
+    <div className="reg-success">
+      <CheckCircle size={72} className="reg-success-icon" aria-hidden="true" />
+      <h2 className="reg-success-title">Registration received</h2>
+      <p className="reg-success-subtitle">
+        Your entry for {eventName} is saved. Keep your bib number for reference.
+      </p>
+
+      <div className="reg-success-card">
+        <div className="reg-success-bib">
+          <span className="reg-success-bib-label">Bib Number</span>
+          <span className="reg-success-bib-value">{bib || '—'}</span>
         </div>
-        
-        <div className="space-y-3">
+
+        <dl className="reg-summary-list">
           <div>
-            <p className="text-sm text-gray-400">Participant</p>
-            <p className="font-semibold text-white">{formData.firstName} {formData.lastName}</p>
+            <dt>Runner</dt>
+            <dd>{registration?.first_name} {registration?.last_name}</dd>
           </div>
           <div>
-            <p className="text-sm text-gray-400">Event & Category</p>
-            <p className="font-semibold text-white">{eventName} - {formData.category}</p>
+            <dt>Category</dt>
+            <dd>{registration?.category}</dd>
           </div>
-        </div>
+          <div>
+            <dt>Status</dt>
+            <dd>
+              {isPending ? (
+                <span className="reg-status-pending">
+                  <Clock size={14} aria-hidden="true" /> Payment pending
+                </span>
+              ) : (
+                <span className="reg-status-paid">Confirmed</span>
+              )}
+            </dd>
+          </div>
+        </dl>
       </div>
 
-      <div className="max-w-md mx-auto bg-primary/10 border border-primary/30 rounded-lg p-6 mb-8 text-left">
-        <h4 className="font-bold text-primary mb-4 text-lg">Important Next Steps</h4>
-        <ul className="text-sm text-gray-200 list-disc list-inside space-y-3 mb-6">
-          <li>Your confirmation and waiver copy have been sent to <strong>{formData.email}</strong>.</li>
-          <li>Bib collection details will be shared via email exactly <strong>7 days before race day</strong>.</li>
-          <li>Please carry a valid government ID for bib collection.</li>
-        </ul>
-        <div className="bg-black/20 p-4 rounded-lg border border-white/5 text-sm text-gray-300">
-          <p className="mb-1">Need help or need to report an issue?</p>
-          <p>Contact us at: <a href="mailto:support@goda.run" className="text-primary font-bold hover:underline">support@goda.run</a></p>
-        </div>
+      <div className="reg-success-next">
+        <h3>What happens next</h3>
+        <ol>
+          <li>
+            The organisers will contact you at <strong>{registration?.email}</strong> with
+            payment instructions.
+          </li>
+          <li>Your place is confirmed once payment is received.</li>
+          <li>Bib collection details are shared closer to race day. Carry a government photo ID.</li>
+        </ol>
+
+        {(contactEmail || contactPhone) && (
+          <p className="reg-success-contact">
+            Questions? Reach us at{' '}
+            {contactEmail && <a href={`mailto:${contactEmail}`}>{contactEmail}</a>}
+            {contactEmail && contactPhone && ' or '}
+            {contactPhone && <a href={`tel:${contactPhone.replace(/\s+/g, '')}`}>{contactPhone}</a>}.
+          </p>
+        )}
       </div>
 
-      <Button variant="primary" onClick={() => window.location.href="/"}>Return to Home</Button>
+      <div className="reg-actions reg-actions--center">
+        <Link to="/"><Button variant="outline">Back to home</Button></Link>
+        <Link to="/event"><Button variant="primary">Event details</Button></Link>
+      </div>
     </div>
   );
 }

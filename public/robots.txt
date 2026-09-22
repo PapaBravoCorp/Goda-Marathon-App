@@ -1,0 +1,12 @@
+# GODA Epic Trail Run
+#
+# Replace the Sitemap host below with the real domain before launch.
+
+User-agent: *
+Allow: /
+
+# The dashboard is staff-only and its content is behind a sign-in anyway.
+# Listing it here keeps it out of search results; it is not a security control.
+Disallow: /admin
+
+Sitemap: https://godatrailrun.com/sitemap.xml

@@ -1,8 +1,16 @@
 import { supabase } from '../supabaseClient';
 
-// TODO: [AUTH] Replace anon-key writes with service_role via Edge Functions
-// TODO: [SERVICE_ROLE] Move sendBulkEmail to Edge Function with Resend API key as secret
-// TODO: [RLS] Restrict email_log to service_role only
+/**
+ * Bulk email to participants.
+ *
+ * The edge function this calls did not exist until now -- invoking it returned
+ * 404, so every attempt was logged FAILED and nobody ever received anything.
+ * It lives at supabase/functions/send-bulk-email and has to be deployed, with
+ * a mail-provider key set as a secret, before this does anything.
+ *
+ * email_log is admin-only in both directions after migration 0006; the subject
+ * and body of mail sent to participants is not public information.
+ */
 
 const TABLE_NAME = 'email_log';
 
@@ -21,7 +29,23 @@ const EmailStatus = {
  * 3. Call edge function
  * 4. Update to SENT or FAILED with error_message
  */
-export const sendBulkEmail = async ({ subject, body, recipientFilter, recipientCount }) => {
+const describeFunctionError = (err) => {
+  const message = err?.message || '';
+  // A missing function and a missing secret are both common before launch and
+  // need different actions, so do not collapse them into "delivery failed".
+  if (/404|not found/i.test(message)) {
+    return 'The send-bulk-email function is not deployed yet. Run `supabase functions deploy send-bulk-email`.';
+  }
+  if (/not configured|503/i.test(message)) {
+    return 'Email is not configured yet. Set RESEND_API_KEY and MAIL_FROM as Supabase secrets.';
+  }
+  if (/permission|403/i.test(message)) {
+    return 'Your account is not permitted to send email.';
+  }
+  return message || 'Edge function unavailable or failed';
+};
+
+export const sendBulkEmail = async ({ subject, body, recipientFilter, recipientCount, eventId }) => {
   // Step 1: Insert as QUEUED
   const { data: logData, error: logError } = await supabase
     .from(TABLE_NAME)
@@ -44,22 +68,23 @@ export const sendBulkEmail = async ({ subject, body, recipientFilter, recipientC
 
   // Step 3: Attempt edge function
   try {
-    const { error: fnError } = await supabase.functions.invoke('send-bulk-email', {
-      body: { subject, body, recipientFilter, logId }
+    const { data: fnData, error: fnError } = await supabase.functions.invoke('send-bulk-email', {
+      body: { subject, body, recipientFilter, eventId, logId }
     });
 
     if (fnError) throw fnError;
 
-    // Step 4a: Success
+    // The function reports how many actually went out, which can be fewer than
+    // the number the composer predicted.
     await updateEmailStatus(logId, EmailStatus.SENT);
-    return { ...logData, status: EmailStatus.SENT };
+    return { ...logData, status: EmailStatus.SENT, sent: fnData?.sent ?? recipientCount };
   } catch (err) {
     // Step 4b: Failure — record the error, do NOT silently swallow
-    const errorMessage = err?.message || 'Edge function unavailable or failed';
+    const errorMessage = describeFunctionError(err);
     await updateEmailStatus(logId, EmailStatus.FAILED, errorMessage);
 
     // Re-throw so the UI can show the failure
-    const enrichedError = new Error(`Email delivery failed: ${errorMessage}`);
+    const enrichedError = new Error(errorMessage);
     enrichedError.logId = logId;
     enrichedError.status = EmailStatus.FAILED;
     throw enrichedError;
@@ -113,7 +138,7 @@ export const retryEmail = async (logId) => {
       await updateEmailStatus(logId, EmailStatus.SENT);
       return { ...original, status: EmailStatus.SENT };
     } catch (err) {
-      const errorMessage = err?.message || 'Retry failed';
+      const errorMessage = describeFunctionError(err);
       await updateEmailStatus(logId, EmailStatus.FAILED, errorMessage);
       throw new Error(`Retry failed: ${errorMessage}`);
     }

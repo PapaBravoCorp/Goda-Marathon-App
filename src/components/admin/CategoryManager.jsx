@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Trash2, Edit3, Users } from 'lucide-react';
 import { getEventCategories, addEventCategory, updateEventCategory, deleteEventCategory } from '../../utils/services/categories';
+import { describeSaveError } from '../../utils/services/errors';
 
 export default function CategoryManager({ eventId, eventSlug }) {
   const [categories, setCategories] = useState([]);
@@ -13,24 +14,32 @@ export default function CategoryManager({ eventId, eventSlug }) {
   const emptyForm = {
     name: '', distance: '', elevation: '0m', price: '',
     min_age: 5, max_slots: 200, flag_off_time: '',
-    status: 'Open', display_order: 0
+    status: 'Open', display_order: 0,
+    // Edited as one-per-line text; stored as a jsonb array.
+    perks: '', elevation_image: ''
   };
   const [formData, setFormData] = useState(emptyForm);
 
-  useEffect(() => { loadData(); }, [eventId]);
+  const perksToLines = (perks) => Array.isArray(perks) ? perks.join('\n') : '';
+  const linesToPerks = (text) =>
+    text.split('\n').map(l => l.trim()).filter(Boolean);
 
-  const loadData = async () => {
+
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Registration counts are derived inside the service
-      const cats = await getEventCategories(eventId, eventSlug);
-      setCategories(cats);
+      // Counts come from get_category_availability, not from reading entrants.
+      setCategories(await getEventCategories(eventId, eventSlug));
     } catch (err) {
-      console.error(err);
+      setFormError(describeSaveError(err, 'categories'));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [eventId, eventSlug]);
+
+  // Declared after loadData deliberately: a dependency array is evaluated
+  // during render, so naming it above its own `const` throws.
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleInput = (e) => {
     const { name, value } = e.target;
@@ -58,6 +67,8 @@ export default function CategoryManager({ eventId, eventSlug }) {
         flag_off_time: formData.flag_off_time || null,
         status: formData.status,
         display_order: parseInt(formData.display_order) || 0,
+        perks: linesToPerks(formData.perks),
+        elevation_image: formData.elevation_image.trim() || null,
       };
 
       if (editingId) {
@@ -70,7 +81,10 @@ export default function CategoryManager({ eventId, eventSlug }) {
       setEditingId(null);
       await loadData();
     } catch (err) {
-      setFormError('Failed to save category. Please try again.');
+      // The message matters now: after the RLS lockdown the usual cause is an
+      // expired session, and "please try again" sends the organiser round the
+      // same loop forever.
+      setFormError(describeSaveError(err, 'category'));
     } finally {
       setIsSubmitting(false);
     }
@@ -82,6 +96,7 @@ export default function CategoryManager({ eventId, eventSlug }) {
       price: cat.price, min_age: cat.min_age || 5, max_slots: cat.max_slots || 200,
       flag_off_time: cat.flag_off_time || '', status: cat.status || 'Open',
       display_order: cat.display_order || 0,
+      perks: perksToLines(cat.perks), elevation_image: cat.elevation_image || '',
     });
     setEditingId(cat.id);
     setShowForm(true);
@@ -89,7 +104,7 @@ export default function CategoryManager({ eventId, eventSlug }) {
   };
 
   const handleDelete = async (id, name) => {
-    const count = regCounts[name] || 0;
+    const count = categories.find(c => c.id === id)?.registration_count || 0;
     const msg = count > 0
       ? `"${name}" has ${count} registrations. Are you sure you want to delete this category?`
       : `Delete category "${name}"?`;
@@ -98,7 +113,7 @@ export default function CategoryManager({ eventId, eventSlug }) {
       await deleteEventCategory(id);
       await loadData();
     } catch (err) {
-      console.error(err);
+      setFormError(describeSaveError(err, 'category'));
     }
   };
 
@@ -166,6 +181,27 @@ export default function CategoryManager({ eventId, eventSlug }) {
               <input name="display_order" type="number" value={formData.display_order} onChange={handleInput} />
             </div>
           </div>
+
+          {/* Homepage card content */}
+          <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
+            <label htmlFor="cat-perks">Card Perks — one per line</label>
+            <textarea
+              id="cat-perks"
+              name="perks"
+              value={formData.perks}
+              onChange={handleInput}
+              rows={3}
+              placeholder={'Finisher Medal included\nAid stations on route\nTiming chip included'}
+              style={{ resize: 'vertical' }}
+            />
+            <span className="admin-field-hint">Shown as bullets on the homepage card. Leave empty to hide the list.</span>
+          </div>
+          <div className="admin-media-form-group" style={{ marginTop: '0.75rem' }}>
+            <label htmlFor="cat-elev-img">Elevation Profile Image</label>
+            <input id="cat-elev-img" name="elevation_image" value={formData.elevation_image} onChange={handleInput} placeholder="/images/elevation_5km.png" />
+            <span className="admin-field-hint">Revealed by the card&apos;s &ldquo;View Route&rdquo; toggle. Leave empty to hide the toggle.</span>
+          </div>
+
           {formError && <div className="admin-login-error" style={{ marginTop: '0.75rem' }}><span>{formError}</span></div>}
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>

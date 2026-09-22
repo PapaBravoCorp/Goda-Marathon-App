@@ -1,13 +1,93 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-IN">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!--
+      These tags are what a crawler that does not run JavaScript reads, and what
+      WhatsApp, Slack and X use to build a link preview. src/components/Seo.jsx
+      overwrites them per route once React has mounted; these are the fallback
+      and the default.
+
+      Before launch, replace https://godatrailrun.com below with the real
+      domain, in this file and in public/robots.txt and public/sitemap.xml.
+    -->
+    <title>GODA Epic Trail Run — Trail running in Nashik</title>
+    <meta
+      name="description"
+      content="GODA Epic Trail Run, organised by Godavari Expedition and G5 Foundation in the Gangapur Backwaters near Nashik. Trail distances for every level, chip timing, finisher medals and full medical support."
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Godavari Expedition" />
+    <meta name="theme-color" content="#0B0B0B" />
+    <link rel="canonical" href="https://godatrailrun.com/" />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>goda-marathon</title>
+    <link rel="apple-touch-icon" href="/images/trail_hero.png" />
+
+    <!-- Open Graph: the shape of a shared link on WhatsApp and Facebook. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="GODA Epic Trail Run" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:title" content="GODA Epic Trail Run — Trail running in Nashik" />
+    <meta
+      property="og:description"
+      content="Trail distances for every level in the Gangapur Backwaters near Nashik. Chip timing, finisher medals and full medical support."
+    />
+    <meta property="og:url" content="https://godatrailrun.com/" />
+    <meta property="og:image" content="https://godatrailrun.com/images/trail_hero.png" />
+    <meta property="og:image:alt" content="Runners on a grass trail above the Gangapur Backwaters" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="GODA Epic Trail Run — Trail running in Nashik" />
+    <meta
+      name="twitter:description"
+      content="Trail distances for every level in the Gangapur Backwaters near Nashik. Chip timing, finisher medals and full medical support."
+    />
+    <meta name="twitter:image" content="https://godatrailrun.com/images/trail_hero.png" />
+
+    <!-- Fonts are loaded via @import in index.css; preconnecting here starts the
+         DNS and TLS handshake before the stylesheet is parsed. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Organisation-level structured data. The per-event SportsEvent record is
+         injected by src/pages/Home.jsx, because the date, venue and ticket
+         prices are edited in the admin panel and must not be duplicated here. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SportsOrganization",
+        "name": "Godavari Expedition",
+        "alternateName": "GODA Epic Trail Run",
+        "url": "https://godatrailrun.com/",
+        "email": "godavariexpedition@gmail.com",
+        "telephone": "+918208592273",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Tidke Colony",
+          "addressLocality": "Nashik",
+          "addressRegion": "Maharashtra",
+          "addressCountry": "IN"
+        },
+        "sport": "Trail running"
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="padding: 32px; font-family: system-ui, sans-serif; color: #fff; background: #0B0B0B;">
+        <h1>GODA Epic Trail Run</h1>
+        <p>This site needs JavaScript to run. Please enable it, or contact us directly:</p>
+        <p>
+          <a href="mailto:godavariexpedition@gmail.com" style="color:#45E52C">godavariexpedition@gmail.com</a>
+          &middot;
+          <a href="tel:+918208592273" style="color:#45E52C">+91 82085 92273</a>
+        </p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

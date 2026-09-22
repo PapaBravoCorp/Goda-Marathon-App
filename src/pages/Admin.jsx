@@ -1,35 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, Eye, EyeOff, ShieldCheck, Users, LayoutGrid, CalendarClock, Image, Settings, Mail } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Lock, LogOut, Eye, EyeOff, ShieldCheck, Users, LayoutGrid,
+  CalendarClock, Image, Settings, Mail, MessageSquare, Mailbox, AlertTriangle,
+} from 'lucide-react';
 import { CURRENT_EVENT } from '../utils/constants';
 import { getCurrentEvent } from '../utils/services/events';
+import { signIn, signOut, getSession, isAdmin, onAuthChange, describeAuthError } from '../utils/services/auth';
 
 import RegistrationManager from '../components/admin/RegistrationManager';
 import CategoryManager from '../components/admin/CategoryManager';
 import ScheduleManager from '../components/admin/ScheduleManager';
-import MediaManager from '../components/admin/MediaManager';
+import PastEventsManager from '../components/admin/PastEventsManager';
 import EventSettings from '../components/admin/EventSettings';
 import NotificationsManager from '../components/admin/NotificationsManager';
+import ContentManager from '../components/admin/ContentManager';
+import SubscriberManager from '../components/admin/SubscriberManager';
+import Seo from '../components/Seo';
 
 import './Admin.css';
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'goda2026';
-const SESSION_KEY = 'goda-admin-auth';
-
-function AdminLogin({ onLogin }) {
+function AdminLogin({ onSignedIn }) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
 
-  const handleSubmit = (e) => {
+  const fail = (message) => {
+    setError(message);
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 600);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem(SESSION_KEY, 'true');
-      onLogin();
-    } else {
-      setError('Invalid password. Access denied.');
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 600);
+    if (isBusy) return;
+
+    setError('');
+    setIsBusy(true);
+    try {
+      await signIn(email, password);
+
+      // A valid account is not automatically an administrator. Ask the
+      // database, and refuse the session rather than showing a dashboard whose
+      // every panel would come back empty.
+      if (!(await isAdmin())) {
+        await signOut();
+        fail('This account does not have administrator access.');
+        return;
+      }
+      onSignedIn();
+    } catch (err) {
+      fail(describeAuthError(err));
+    } finally {
+      setIsBusy(false);
     }
   };
 
@@ -40,9 +65,23 @@ function AdminLogin({ onLogin }) {
           <ShieldCheck size={48} />
         </div>
         <h2 className="admin-login-title">Admin Access</h2>
-        <p className="admin-login-subtitle">Enter the admin password to access the dashboard.</p>
-        
+        <p className="admin-login-subtitle">Sign in with your organiser account.</p>
+
         <form onSubmit={handleSubmit} className="admin-login-form">
+          <div className="admin-password-field">
+            <Mail size={18} className="admin-field-icon" />
+            <input
+              id="admin-email"
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(''); }}
+              placeholder="you@example.com"
+              autoComplete="username"
+              required
+              autoFocus
+            />
+          </div>
+
           <div className="admin-password-field">
             <Lock size={18} className="admin-field-icon" />
             <input
@@ -50,9 +89,9 @@ function AdminLogin({ onLogin }) {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(''); }}
-              placeholder="Enter admin password"
-              autoFocus
+              placeholder="Password"
               autoComplete="current-password"
+              required
             />
             <button
               type="button"
@@ -65,14 +104,14 @@ function AdminLogin({ onLogin }) {
           </div>
 
           {error && (
-            <div className="admin-login-error">
-              <Lock size={14} />
+            <div className="admin-login-error" role="alert">
+              <AlertTriangle size={14} />
               <span>{error}</span>
             </div>
           )}
 
-          <button type="submit" className="btn btn-primary admin-login-btn">
-            Unlock Dashboard
+          <button type="submit" className="btn btn-primary admin-login-btn" disabled={isBusy}>
+            {isBusy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>
@@ -84,46 +123,76 @@ const TABS = [
   { id: 'registrations', label: 'Registrations', icon: Users },
   { id: 'categories', label: 'Categories', icon: LayoutGrid },
   { id: 'schedule', label: 'Schedule', icon: CalendarClock },
-  { id: 'media', label: 'Media', icon: Image },
+  { id: 'media', label: 'Past Events', icon: Image },
+  { id: 'content', label: 'Content', icon: MessageSquare },
   { id: 'event', label: 'Settings', icon: Settings },
   { id: 'notifications', label: 'Email', icon: Mail },
+  { id: 'subscribers', label: 'Subscribers', icon: Mailbox },
 ];
 
 export default function Admin() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authState, setAuthState] = useState('checking'); // checking | out | in
   const [activeTab, setActiveTab] = useState('registrations');
   const [eventData, setEventData] = useState(null);
 
-  useEffect(() => {
-    if (sessionStorage.getItem(SESSION_KEY) === 'true') {
-      setIsAuthenticated(true);
+  const refreshAuth = useCallback(async () => {
+    try {
+      const session = await getSession();
+      if (!session) { setAuthState('out'); return; }
+      setAuthState((await isAdmin()) ? 'in' : 'out');
+    } catch {
+      setAuthState('out');
     }
   }, []);
 
-  // Resolve event UUID dynamically
   useEffect(() => {
-    if (isAuthenticated) {
-      getCurrentEvent().then(ev => setEventData(ev));
-    }
-  }, [isAuthenticated]);
+    refreshAuth();
+    // Keeps this tab honest when the session is ended somewhere else, or when
+    // the refresh token finally expires while the dashboard sits open.
+    return onAuthChange((session) => {
+      if (!session) setAuthState('out');
+      else refreshAuth();
+    });
+  }, [refreshAuth]);
 
-  const handleLogout = () => {
-    sessionStorage.removeItem(SESSION_KEY);
-    setIsAuthenticated(false);
+  useEffect(() => {
+    if (authState !== 'in') return;
+    let cancelled = false;
+    getCurrentEvent().then(ev => { if (!cancelled) setEventData(ev); });
+    return () => { cancelled = true; };
+  }, [authState]);
+
+  const handleLogout = async () => {
+    await signOut();
+    setEventData(null);
+    setAuthState('out');
   };
 
-  if (!isAuthenticated) {
-    return <AdminLogin onLogin={() => setIsAuthenticated(true)} />;
+  if (authState === 'checking') {
+    return (
+      <div className="admin-login-wrapper">
+        <p className="text-muted">Checking your session…</p>
+      </div>
+    );
   }
 
-  // Event UUID for new FK tables, slug for legacy registrations table
-  const eventUuid = eventData?.id;
-  const eventSlug = CURRENT_EVENT.slug;
+  if (authState === 'out') {
+    return (
+      <>
+        <Seo title="Admin Sign In" noIndex />
+        <AdminLogin onSignedIn={() => setAuthState('in')} />
+      </>
+    );
+  }
+
+  // events.id doubles as the slug on this project ("goda-2026"), and
+  // registrations.event_id stores that same text.
+  const eventId = eventData?.id || CURRENT_EVENT.slug;
 
   return (
     <div className="admin-page">
+      <Seo title="Admin Dashboard" noIndex />
       <div className="container admin-container">
-        {/* Header */}
         <div className="admin-header">
           <div className="admin-header-info">
             <h2>Admin <span className="text-primary">Dashboard</span></h2>
@@ -131,15 +200,16 @@ export default function Admin() {
           </div>
           <button className="btn btn-outline admin-action-btn admin-logout-btn" onClick={handleLogout}>
             <LogOut size={18} />
-            <span className="admin-action-label">Logout</span>
+            <span className="admin-action-label">Sign out</span>
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="admin-tabs">
+        <div className="admin-tabs" role="tablist">
           {TABS.map(tab => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
               className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
             >
@@ -149,25 +219,18 @@ export default function Admin() {
           ))}
         </div>
 
-        {/* Tab Content — pass both UUID and slug */}
         {activeTab === 'registrations' && (
-          <RegistrationManager eventSlug={eventSlug} eventUuid={eventUuid} eventName={eventData?.name || CURRENT_EVENT.name} />
+          <RegistrationManager eventSlug={eventId} eventUuid={eventId} />
         )}
-        {activeTab === 'categories' && (
-          <CategoryManager eventId={eventUuid} eventSlug={eventSlug} />
-        )}
-        {activeTab === 'schedule' && (
-          <ScheduleManager eventId={eventUuid} />
-        )}
-        {activeTab === 'media' && (
-          <MediaManager />
-        )}
-        {activeTab === 'event' && (
-          <EventSettings />
-        )}
+        {activeTab === 'categories' && <CategoryManager eventId={eventId} eventSlug={eventId} />}
+        {activeTab === 'schedule' && <ScheduleManager eventId={eventId} />}
+        {activeTab === 'media' && <PastEventsManager />}
+        {activeTab === 'content' && <ContentManager />}
+        {activeTab === 'event' && <EventSettings />}
         {activeTab === 'notifications' && (
-          <NotificationsManager eventUuid={eventUuid} eventSlug={eventSlug} />
+          <NotificationsManager eventUuid={eventId} eventSlug={eventId} />
         )}
+        {activeTab === 'subscribers' && <SubscriberManager />}
       </div>
     </div>
   );
