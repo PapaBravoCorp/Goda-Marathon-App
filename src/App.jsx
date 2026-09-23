@@ -25,6 +25,11 @@ import './index.css';
  * mobile data fetches only what the public site needs.
  */
 const Admin = lazy(() => import('./pages/Admin'));
+
+// Split out for the same reason: a roster form with its own table and tally
+// styling is dead weight for the great majority of visitors, who enter alone.
+const GroupRegister = lazy(() => import('./pages/Register/Group'));
+
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
 const RefundPolicy = lazy(() => import('./pages/legal/RefundPolicy'));
@@ -59,6 +64,7 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/event" element={<EventDetails />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/register/group" element={<GroupRegister />} />
               <Route path="/past-events" element={<PastEvents />} />
               <Route path="/results" element={<Results />} />
               <Route path="/admin" element={<Admin />} />

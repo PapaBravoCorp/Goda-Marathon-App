@@ -93,6 +93,7 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0007_registration_rpc.sql` | Server-side registration, pricing and bib numbers |
 | `0008_results_and_newsletter.sql` | Real finish times, results switch, newsletter |
 | `0009_policy_rebuild.sql` | **Required.** Rebuilds every policy and verifies the result |
+| `0010_group_registrations_and_coupons.sql` | Bulk (group) entries and real discount codes |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which
 missed allow-all policies that had been created outside these migrations. It
@@ -168,7 +169,7 @@ npm run supabase -- secrets set --env-file supabase/.env
 
 ### Blocking
 
-- [ ] Migrations 0006 through 0009 applied to the production project
+- [ ] Migrations 0006 through 0010 applied to the production project
 - [ ] First admin account created and sign-in tested at `/admin`
 - [ ] Public sign-ups disabled in Supabase Auth
 - [ ] Test the full registration flow end to end, then delete the test entry

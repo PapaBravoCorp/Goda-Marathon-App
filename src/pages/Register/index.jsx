@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Loader } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Loader, Users } from 'lucide-react';
 
 import { CATEGORY_PRICING, CURRENT_EVENT, CATEGORY_RULES } from '../../utils/constants';
 import { addRegistration, isEmailRegistered } from '../../utils/services/registrations';
 import { getEventCategories } from '../../utils/services/categories';
 import { getCurrentEvent } from '../../utils/services/events';
+import { previewCoupon } from '../../utils/services/coupons';
 import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../utils/validation';
 import { trackEvent } from '../../utils/analytics';
 
@@ -59,6 +61,7 @@ export default function Register() {
   const [dbCategories, setDbCategories] = useState([]);
   const [eventConfig, setEventConfig] = useState(null);
   const [registration, setRegistration] = useState(null);
+  const [couponQuote, setCouponQuote] = useState(null);
 
   const formRef = useRef(null);
   const age = useMemo(() => calculateAge(formData.dob), [formData.dob]);
@@ -164,6 +167,35 @@ export default function Register() {
     setStep(1);
     setNotice('The category you had chosen is no longer available. Please pick another.');
   }, [isLoaded, step, formData.category, categories]);
+
+  /**
+   * Quote the coupon on the confirm step.
+   *
+   * The code used to be stored and nothing more — the form said "checked by the
+   * organisers", so a runner learned what they actually owed when the payment
+   * request arrived. The database now prices it, and this shows the same figure
+   * that create_registration() will store: both call evaluate_coupon(), so the
+   * screen and the row cannot disagree.
+   */
+  useEffect(() => {
+    if (step !== 3) return;
+
+    const code = formData.couponCode.trim();
+    if (!code || !formData.category) { setCouponQuote(null); return; }
+
+    let cancelled = false;
+    (async () => {
+      const q = await previewCoupon(
+        code,
+        eventConfig?.id || CURRENT_EVENT.slug,
+        [formData.category],
+        false
+      );
+      if (!cancelled) setCouponQuote(q);
+    })();
+
+    return () => { cancelled = true; };
+  }, [step, formData.couponCode, formData.category, eventConfig]);
 
   /* ── Field helpers ────────────────────────────────────────────────────── */
 
@@ -433,6 +465,23 @@ export default function Register() {
         description={`Enter the ${eventConfig?.name || CURRENT_EVENT.name}. Choose your distance, give your details and reserve your place.`}
       />
       <div className="reg-container">
+        {/* Above the step indicator, not at the foot of step 1 where it was.
+            A restored draft starts the runner on step 2 or 3, so a link that
+            lives inside step 1 is invisible to exactly the returning visitor
+            most likely to be organising a team. Hidden from step 3 onward:
+            past the confirm screen, switching would discard what they typed,
+            and a second group entry can always be made afterwards. */}
+        {step < 3 && (
+          <p className="reg-group-link">
+            <Users size={16} aria-hidden="true" />
+            <span>
+              Entering a club, company or school team?{' '}
+              <Link to="/register/group">Register as a group</Link> — one form,
+              one payment, and group discount codes apply.
+            </span>
+          </p>
+        )}
+
         {step < 4 && (
           <ol className="reg-steps" aria-label="Registration progress">
             {STEPS.map(s => (
@@ -481,6 +530,7 @@ export default function Register() {
               waivers={waivers}
               errors={errors}
               category={selectedCategory}
+              couponQuote={couponQuote}
               onWaiverChange={handleWaiverChange}
               onBack={() => goBack(2)}
               onSubmit={submitRegistration}

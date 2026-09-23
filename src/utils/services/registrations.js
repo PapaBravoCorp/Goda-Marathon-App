@@ -279,12 +279,26 @@ export const exportToCSV = async (eventSlug) => {
     return { ok: false, message: 'No registrations to export.' };
   }
 
+  // Group entries pay once, as a group, so the export has to say which group a
+  // runner belongs to -- otherwise twenty rows each showing a discounted price
+  // give an organiser no way to tell what a single invoice should total.
+  const groupCodes = new Map();
+  const groupIds = [...new Set(data.map(r => r.group_id).filter(Boolean))];
+  if (groupIds.length > 0) {
+    const { data: groups } = await supabase
+      .from('registration_groups')
+      .select('id, group_code')
+      .in('id', groupIds);
+    (groups || []).forEach(g => groupCodes.set(g.id, g.group_code));
+  }
+
   const headers = [
     'Name', 'Email', 'Phone', 'Category', 'Bib Number', 'T-Shirt',
     'Blood Group', 'Emergency Contact', 'Emergency Number',
     'Medical Condition', 'Allergies',
     'City', 'State', 'Pincode', 'Club',
-    'Price', 'Payment Status', 'Finish Status', 'Finish Time',
+    'Group', 'Coupon', 'List Price', 'Discount', 'Payable',
+    'Payment Status', 'Finish Status', 'Finish Time',
     'Waivers Accepted', 'Registered At',
   ];
 
@@ -314,6 +328,12 @@ export const exportToCSV = async (eventSlug) => {
     cell(r.state),
     cell(r.pincode),
     cell(r.club_name),
+    cell(r.group_id ? (groupCodes.get(r.group_id) || 'GROUP') : ''),
+    cell(r.coupon_code),
+    // list_price is NULL on rows created before coupons existed; there it is
+    // the same as what was paid.
+    cell(r.list_price ?? r.price),
+    cell(r.discount_amount ?? 0),
     cell(r.price),
     cell(r.payment_status),
     cell(r.finish_status),

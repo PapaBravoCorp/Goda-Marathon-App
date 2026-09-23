@@ -1,0 +1,489 @@
+/* Group (bulk) registration.
+ *
+ * Layered on top of Register.css: everything shared with the solo flow --
+ * fields, errors, declarations, summary lists, the success card -- keeps its
+ * `reg-` classes, and only what is specific to a roster is defined here.
+ */
+
+/* The roster needs more width than a single-runner form. */
+.grp-container { max-width: 1040px; }
+
+/* ── Intro ──────────────────────────────────────────────────────────────── */
+.grp-intro {
+  display: flex;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: rgba(69, 229, 44, 0.05);
+}
+
+.grp-intro svg { color: var(--color-primary); flex-shrink: 0; margin-top: 2px; }
+.grp-intro strong { display: block; margin-bottom: 5px; font-size: 0.92rem; }
+
+.grp-intro p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.grp-intro-alt { margin-top: 0.5rem !important; }
+.grp-intro-alt a { color: var(--color-primary); font-weight: 600; }
+
+.grp-note-compact { margin-top: 1rem; }
+.grp-field-wide { margin-top: 1.25rem; }
+
+/* ── Roster layout ──────────────────────────────────────────────────────── */
+.grp-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.grp-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* ── One participant ────────────────────────────────────────────────────── */
+.grp-row {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.9rem 1rem 1rem;
+}
+
+.grp-row.has-error { border-color: var(--color-danger); }
+
+.grp-row-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.grp-row-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface-light);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.grp-row-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grp-row-untitled {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.grp-row-head-side {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.grp-row-price {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-right: 0.2rem;
+}
+
+.grp-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.grp-icon-btn:hover:not(:disabled) {
+  color: var(--color-text-main);
+  border-color: var(--color-border-light);
+}
+
+.grp-icon-btn--danger:hover:not(:disabled) {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.grp-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.grp-row-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.85rem;
+}
+
+/* Category carries the longest labels, so it gets the room. */
+.grp-field-span { grid-column: span 2; }
+
+/* ── Optional fields disclosure ─────────────────────────────────────────── */
+.grp-extras-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.9rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.grp-extras-toggle:hover { color: var(--color-primary); }
+.grp-extras-toggle svg { transition: transform var(--transition-fast); }
+.grp-extras-toggle.is-open svg { transform: rotate(180deg); }
+
+.grp-extras-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.grp-row-extras {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.grp-medical-check { margin-top: 0.85rem; font-size: 0.85rem; }
+
+/* ── Add participant ────────────────────────────────────────────────────── */
+.grp-add-row { list-style: none; }
+
+.grp-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0.9rem;
+  border: 1px dashed var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.grp-add-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: rgba(69, 229, 44, 0.06);
+}
+
+.grp-add-btn:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  border-style: solid;
+}
+
+.grp-add-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* ── Running total ──────────────────────────────────────────────────────── */
+.grp-tally {
+  position: sticky;
+  top: calc(var(--navbar-height) + 1rem);
+  padding: 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(26, 26, 26, 0.75);
+}
+
+.grp-tally-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+  margin: 0 0 0.85rem;
+}
+
+.grp-tally-count {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 0.9rem;
+}
+
+.grp-tally-count-value { font-size: 2rem; font-weight: 800; line-height: 1; }
+.grp-tally-count-label { font-size: 0.82rem; color: var(--color-text-muted); }
+
+.grp-tally-list {
+  list-style: none;
+  margin: 0 0 0.9rem;
+  padding: 0 0 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.grp-tally-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.83rem;
+}
+
+.grp-tally-cat { color: var(--color-text-muted); }
+.grp-tally-list li.is-over .grp-tally-cat { color: var(--color-danger); }
+
+.grp-tally-warn {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.grp-tally-empty,
+.grp-tally-pending,
+.grp-tally-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.grp-tally-pending { margin-top: 0.6rem; color: var(--color-accent); }
+.grp-tally-note { margin-top: 0.85rem; }
+
+.grp-tally-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.grp-tally-total strong {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+/* ── Review table ───────────────────────────────────────────────────────── */
+.grp-count-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface-light);
+  color: var(--color-text-main);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Scrolls on its own rather than pushing the page sideways on a phone. */
+.grp-review-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.grp-review-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 480px;
+}
+
+.grp-review-table th {
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.grp-review-table td {
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.grp-review-table tr:last-child td { border-bottom: none; }
+.grp-review-num { color: var(--color-text-muted); }
+.grp-num { text-align: right; white-space: nowrap; }
+
+.grp-review-name { display: block; font-weight: 600; }
+
+.grp-review-email {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ── Coupon ─────────────────────────────────────────────────────────────── */
+.grp-coupon {
+  display: grid;
+  grid-template-columns: auto minmax(0, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color var(--transition-fast);
+}
+
+.grp-coupon.is-applied { border-color: var(--color-primary); }
+.grp-coupon.is-rejected { border-color: var(--color-accent); }
+
+.grp-coupon-icon { color: var(--color-text-muted); flex-shrink: 0; }
+.grp-coupon.is-applied .grp-coupon-icon { color: var(--color-primary); }
+
+.grp-coupon-input input { text-transform: uppercase; letter-spacing: 0.05em; }
+
+.grp-coupon-status { font-size: 0.82rem; min-width: 0; }
+
+.grp-coupon-busy,
+.grp-coupon-ok,
+.grp-coupon-bad {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.45;
+}
+
+.grp-coupon-busy { color: var(--color-text-muted); }
+.grp-coupon-ok { color: var(--color-primary); font-weight: 600; }
+.grp-coupon-bad { color: var(--color-accent); }
+
+.grp-coupon-busy svg,
+.grp-coupon-ok svg,
+.grp-coupon-bad svg { flex-shrink: 0; margin-top: 2px; }
+
+.grp-coupon-hint { margin-top: 0.5rem; }
+
+.grp-summary-discount dd { color: var(--color-primary); font-weight: 700; }
+
+.grp-per-person {
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.grp-coupon-notapplied {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 1rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 107, 0, 0.1);
+  color: var(--color-accent);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.grp-coupon-notapplied svg { flex-shrink: 0; margin-top: 3px; }
+
+/* ── Success roster ─────────────────────────────────────────────────────── */
+.grp-roster-result { margin: 1.75rem 0; text-align: left; }
+
+.grp-roster-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.grp-roster-result-head h3 { font-size: 1rem; font-weight: 700; margin: 0; }
+
+.grp-csv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-main);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.grp-csv-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* ── Narrow screens ─────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .grp-layout { grid-template-columns: 1fr; }
+
+  /* Below the roster the sticky total has nothing useful to stick to, and a
+     pinned panel on a short viewport costs more room than it earns. */
+  .grp-tally { position: static; order: 2; }
+  .grp-rows { order: 1; }
+}
+
+@media (max-width: 640px) {
+  .grp-row-grid { grid-template-columns: 1fr; }
+  .grp-field-span { grid-column: span 1; }
+
+  .grp-coupon { grid-template-columns: auto minmax(0, 1fr); }
+  .grp-coupon-status { grid-column: 1 / -1; }
+
+  .grp-row { padding: 0.8rem; }
+  .grp-per-person { text-align: left; }
+}

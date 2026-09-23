@@ -165,7 +165,7 @@ export default function StepRace({
         id="couponCode"
         label="Coupon / Referral Code"
         error={errors.couponCode}
-        hint="Optional. Codes are checked by the organisers when your payment is confirmed."
+        hint="Optional. Any discount is shown on the confirmation step before you submit."
       >
         {(a11y) => (
           <input

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '../../components/Button';
 import { AlertCircle, Info } from 'lucide-react';
+import { describeCouponReason } from '../../utils/services/coupons';
 
 const DECLARATIONS = [
   {
@@ -30,10 +31,20 @@ const DECLARATIONS = [
  * followed by a "Registration Confirmed!" screen.
  */
 export default function StepConfirm({
-  formData, waivers, errors, category,
+  formData, waivers, errors, category, couponQuote,
   onWaiverChange, onBack, onSubmit, isSubmitting, formatCurrency, submitError,
 }) {
   const price = category?.price ?? 0;
+
+  // Quoted by the database, not worked out here. create_registration() stores
+  // the figure its own call to evaluate_coupon() returns, so this line and the
+  // saved row come from the same rule set.
+  const discount = couponQuote?.valid ? Number(couponQuote.discount) || 0 : 0;
+  const total = Math.max(price - discount, 0);
+  const couponRefusal = formData.couponCode && couponQuote && !couponQuote.valid
+    && couponQuote.reason !== 'PREVIEW_FAILED'
+    ? describeCouponReason(couponQuote)
+    : '';
 
   return (
     <form onSubmit={onSubmit} className="space-y-8" noValidate>
@@ -49,12 +60,30 @@ export default function StepConfirm({
           <div><dt>Email</dt><dd>{formData.email}</dd></div>
           <div><dt>Category</dt><dd>{formData.category || '—'}</dd></div>
           <div><dt>T-shirt</dt><dd>{formData.tshirtSize || '—'}</dd></div>
-          {formData.couponCode && (
-            <div><dt>Coupon</dt><dd>{formData.couponCode} <span className="reg-summary-note">(checked by organisers)</span></dd></div>
+          <div><dt>Entry fee</dt><dd>{formatCurrency(price)}</dd></div>
+
+          {discount > 0 && (
+            <div className="reg-summary-discount">
+              <dt>Discount ({couponQuote.code})</dt>
+              <dd>− {formatCurrency(discount)}</dd>
+            </div>
           )}
+
+          {/* A code that will not apply is said so here rather than left to be
+              discovered when the payment request arrives at the full amount. */}
+          {couponRefusal && (
+            <div>
+              <dt>Coupon</dt>
+              <dd>
+                {formData.couponCode}{' '}
+                <span className="reg-summary-note reg-summary-note--warn">{couponRefusal}</span>
+              </dd>
+            </div>
+          )}
+
           <div className="reg-summary-total">
-            <dt>Entry fee</dt>
-            <dd>{formatCurrency(price)}</dd>
+            <dt>Amount payable</dt>
+            <dd>{formatCurrency(total)}</dd>
           </div>
         </dl>
       </section>

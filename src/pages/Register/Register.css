@@ -562,3 +562,32 @@
 }
 
 .reg-success-contact a { color: var(--color-primary); font-weight: 600; }
+
+/* ── Coupon result on the confirm step ──────────────────────────────────── */
+/* The code used to be stored and shown as "checked by organisers". It is now
+   priced by the database before submission, so the summary has a discount line
+   and a way to say a code will not apply. */
+.reg-summary-discount dd { color: var(--color-primary); font-weight: 700; }
+.reg-summary-note--warn { color: var(--color-accent); }
+
+/* ── Group registration cross-link ──────────────────────────────────────── */
+/* Sits above the step indicator, so it is the first thing a club organiser
+   sees rather than something they find after scrolling past the categories. */
+.reg-group-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: rgba(69, 229, 44, 0.05);
+  font-size: 0.87rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.reg-group-link svg { color: var(--color-primary); flex-shrink: 0; margin-top: 3px; }
+.reg-group-link a { color: var(--color-primary); font-weight: 700; }
+.reg-group-link a:hover { text-decoration: underline; }
