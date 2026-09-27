@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Loader } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -81,6 +82,7 @@ export default function App() {
       </main>
 
       <Footer />
+      <Analytics />
     </Router>
   );
 }
