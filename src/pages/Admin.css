@@ -2767,10 +2767,11 @@
   background: #FFFFFF;
 }
 
+/* Fixed navy to match the homepage tile, whatever the admin theme. */
 .admin-sponsor-thumb.is-dark,
 .admin-logo-preview.is-dark {
-  background: var(--color-bg-surface);
-  border-color: var(--color-border);
+  background: #13223A;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .admin-sponsor-thumb img,
@@ -2821,7 +2822,7 @@
 }
 
 .admin-logo-preview.is-dark .admin-logo-preview-empty {
-  color: var(--color-text-muted);
+  color: #9AA7B8;
 }
 
 .admin-logo-field-side {

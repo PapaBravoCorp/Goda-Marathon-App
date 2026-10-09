@@ -53,26 +53,44 @@ function SponsorLogo({ sponsor, size = 'md', decorative = false }) {
   );
 }
 
-/** Credit for featured partners, e.g. "Media Partner" and their logo, in the hero. */
+/**
+ * Featured partners' logos across the top of the hero, laid out like the
+ * event poster: the label ("An Initiative By") above, then the logos side by
+ * side, split by a thin rule.
+ *
+ * A logo whose tile is set to Dark is artwork made for dark backgrounds, so it
+ * sits straight on the photograph, as on the poster. One set to Light has
+ * dark lettering that would vanish there, so it keeps a white tile.
+ */
 export function HeroPartners({ sponsors }) {
   const featured = sponsors.filter(s => s.is_featured);
   if (featured.length === 0) return null;
 
+  const labels = [...new Set(featured.map(s => s.label || DEFAULT_LABEL))];
+  // One shared caption reads as the poster does; differing labels go on
+  // their own logos instead.
+  const shared = labels.length === 1 ? labels[0] : null;
+
   return (
-    <motion.ul
-      initial={{ opacity: 0, y: 20 }}
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
       className="hero-partners"
-      aria-label="Event partners"
     >
-      {featured.map(s => (
-        <li key={s.id} className="hero-partner">
-          <span className="hero-partner-label">{s.label || DEFAULT_LABEL}</span>
-          <SponsorLogo sponsor={s} size="hero" />
-        </li>
-      ))}
-    </motion.ul>
+      {shared && <p className="hero-partners-label" aria-hidden="true">{shared}</p>}
+      <ul className="hero-partners-logos" aria-label={shared || 'Event partners'}>
+        {featured.map(s => (
+          <li key={s.id} className="hero-partner">
+            {shared ? <SponsorLogo sponsor={s} size="hero" /> : (
+              <span className="hero-partner-stack">
+                <span className="hero-partners-label">{s.label || DEFAULT_LABEL}</span>
+                <SponsorLogo sponsor={s} size="hero" />
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </motion.div>
   );
 }
 

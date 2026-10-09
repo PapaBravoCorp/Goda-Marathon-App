@@ -208,6 +208,8 @@ export default function Home() {
         <HeroVideo src={e.hero_video} className="hero-bg" />
         <div className="hero-overlay"></div>
         <div className="container hero-content text-center" style={{ margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {/* Partner logos head the hero, as they head the event poster. */}
+          <HeroPartners sponsors={sponsors} />
           <motion.span initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="badge badge-primary hero-badge">
             {e.edition ? `${e.edition} Edition` : 'Upcoming Event'}
           </motion.span>
@@ -232,8 +234,6 @@ export default function Home() {
               </Button>
             </Link>
           </motion.div>
-
-          <HeroPartners sponsors={sponsors} />
 
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="glass flex flex-col md:flex-row gap-8 md:gap-10 justify-center items-center w-full max-w-4xl" style={{ marginTop: '60px', padding: '24px', borderRadius: '16px' }}>
             <div className="text-center">

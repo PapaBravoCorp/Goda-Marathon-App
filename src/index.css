@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@300;400;500;600;700;800;900&family=Kaushan+Script&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -1861,9 +1861,11 @@ a.story-card:hover {
   background: #FFFFFF;
 }
 
+/* Fixed navy, not the theme's surface colour: that is white in the light
+   theme, where white artwork set to Dark would vanish. */
 .sponsor-logo.is-dark {
-  background: var(--color-bg-surface);
-  border-color: var(--color-border);
+  background: #13223A;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .sponsor-logo img {
@@ -1892,50 +1894,141 @@ a.sponsor-logo:hover {
   padding: 20px 28px;
 }
 
-/* In the hero the tile hugs the logo instead: a fixed box would leave a
-   square crest floating in a wide white slab over the photograph. */
-.sponsor-logo--hero {
-  height: 54px;
-  padding: 9px 16px;
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-}
-
-.sponsor-logo--hero img {
-  width: auto;
-  max-width: 190px;
-}
-
 @media (max-width: 480px) {
   .sponsor-logo--md { width: 144px; height: 72px; padding: 12px 16px; }
   .sponsor-logo--lg { width: min(260px, 100%); height: 112px; }
 }
 
-/* Hero credit, between the buttons and the date/location card. */
+/* ========================================
+   Hero credit, headed like the event poster: a brush-script "An Initiative
+   By" with a swoosh under it, then the partner logos side by side, split by
+   a thin rule. Logos are sized by height so they stand equally tall.
+   ======================================== */
 .hero-partners {
+  --hero-logo-h: clamp(52px, 6.5vw, 92px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  margin: 0 0 28px;
+}
+
+.hero-partners-label {
+  margin: 0;
+  font-family: 'Kaushan Script', 'Brush Script MT', cursive;
+  font-size: clamp(1.25rem, 2vw, 1.6rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: #FFFFFF;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* The poster's brush underline, in the site's orange. A mask rather than an
+   SVG fill so it takes the theme colour. */
+.hero-partners-label::after {
+  content: '';
+  display: block;
+  width: 80%;
+  height: 7px;
+  margin: 3px auto 0;
+  background: var(--color-primary);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12' preserveAspectRatio='none'%3E%3Cpath d='M1 10C50 4 130 1 199 3C135 4 70 8 4 12Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12' preserveAspectRatio='none'%3E%3Cpath d='M1 10C50 4 130 1 199 3C135 4 70 8 4 12Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+
+.hero-partners-logos {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
-  gap: 16px 32px;
+  row-gap: 12px;
+  max-width: 100%;
   list-style: none;
-  margin: 36px 0 0;
+  margin: 0;
   padding: 0;
 }
 
 .hero-partner {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.hero-partner-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
 }
 
-.hero-partner-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--color-text-soft);
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+/* The poster's thin rule between partners, light here as the logos are. */
+.hero-partner + .hero-partner::before {
+  content: '';
+  align-self: center;
+  width: 2px;
+  height: calc(var(--hero-logo-h) * 0.7);
+  margin: 0 clamp(16px, 2.5vw, 32px);
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 1px;
+}
+
+.sponsor-logo--hero {
+  height: var(--hero-logo-h);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.sponsor-logo--hero img {
+  width: auto;
+  max-width: min(440px, 76vw);
+}
+
+/* Artwork made for dark backgrounds (tile set to Dark) goes straight on the
+   photograph, as on the poster. The shadow lifts it off a bright patch of
+   sky without reading as a box. */
+.hero-partners .sponsor-logo.is-dark {
+  background: transparent;
+  box-shadow: none;
+}
+
+.hero-partners .sponsor-logo.is-dark img {
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.45));
+}
+
+/* Artwork with dark lettering (tile set to Light) would vanish on the
+   photograph, so it keeps a white tile. */
+.hero-partners .sponsor-logo.is-light {
+  height: calc(var(--hero-logo-h) + 24px);
+  padding: 12px 24px;
+  border-radius: 14px;
+  background: #FFFFFF;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.hero-partners a.sponsor-logo:hover {
+  transform: none;
+  border-color: transparent;
+  opacity: 0.85;
+}
+
+@media (max-width: 767px) {
+  .hero-partners {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  /* The credit goes above the badge, so the copy is lifted by its height to
+     keep "Register Now" where it was, above the fold: label 42px, gap 8px,
+     logo 52px (76px on a white tile), margin 18px. */
+  .hero--home:has(.hero-partners) {
+    padding-top: max(16px, calc(var(--hero-band) * 0.46 - 112px));
+  }
+
+  .hero--home:has(.hero-partners .sponsor-logo.is-light) {
+    padding-top: max(16px, calc(var(--hero-band) * 0.46 - 136px));
+  }
 }
 
 /* Section */

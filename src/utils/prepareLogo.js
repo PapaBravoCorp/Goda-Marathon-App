@@ -98,12 +98,35 @@ function fit(w, h, maxW, maxH) {
   return { width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)) };
 }
 
+const isNearWhite = (r, g, b) => r > 245 && g > 245 && b > 245;
+
+/**
+ * Whether the logo sits on a white box, judged from its outermost pixels.
+ *
+ * Not from whether every pixel is opaque: an export with a faintly
+ * translucent 1px edge, which is common, would then pass for a transparent
+ * logo and keep its whole white margin. That is how the Sakal x G5 lockup was
+ * uploaded at 720 x 240 with its artwork filling barely 85% of the width.
+ */
+function hasWhiteBackground(data, width, height) {
+  let white = 0, other = 0;
+  const visit = (x, y) => {
+    const i = (y * width + x) * 4;
+    if (data[i + 3] < 8) other++;
+    else if (isNearWhite(data[i], data[i + 1], data[i + 2])) white++;
+    else other++;
+  };
+  for (let x = 0; x < width; x++) { visit(x, 0); visit(x, height - 1); }
+  for (let y = 1; y < height - 1; y++) { visit(0, y); visit(width - 1, y); }
+  return white > other;
+}
+
 /**
  * Bounding box of the artwork, ignoring the margin around it.
  *
- * A file with any transparency is trimmed of transparent pixels. A fully
- * opaque one (a JPEG, a PNG on a white box) is trimmed of near-white instead,
- * which the light tile would show as blank space anyway.
+ * A logo on a white box (a JPEG, most PNG exports) is trimmed of near-white,
+ * which the light tile would show as blank space anyway; any other is trimmed
+ * of transparent pixels only, so white artwork on transparency survives.
  *
  * Also reports how light the artwork is, so a white logo can be put on a dark
  * tile without the organiser having to notice it vanished.
@@ -112,19 +135,16 @@ function analyse(canvas) {
   const { width, height } = canvas;
   const { data } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height);
 
-  let opaque = true;
-  for (let i = 3; i < data.length; i += 4) {
-    if (data[i] < 250) { opaque = false; break; }
-  }
+  const onWhite = hasWhiteBackground(data, width, height);
 
   let minX = width, minY = height, maxX = -1, maxY = -1;
-  let lumaSum = 0, weightSum = 0;
+  let lumaSum = 0, weightSum = 0, solid = 0, solidWhite = 0;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
       const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-      const empty = opaque ? (r > 245 && g > 245 && b > 245) : a < 8;
+      const empty = a < 8 || (onWhite && isNearWhite(r, g, b));
       if (empty) continue;
 
       if (x < minX) minX = x;
@@ -134,16 +154,42 @@ function analyse(canvas) {
 
       lumaSum += (0.2126 * r + 0.7152 * g + 0.0722 * b) * a;
       weightSum += a;
+      if (a >= 128) {
+        solid++;
+        if (r > 230 && g > 230 && b > 230) solidWhite++;
+      }
     }
   }
 
   if (maxX < 0) return null;
   return {
     box: { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 },
-    // Opaque artwork brings its own background; only a transparent logo
-    // depends on the tile behind it.
-    isLightArtwork: !opaque && weightSum > 0 && lumaSum / weightSum > 200,
+    onWhite,
+    // A logo on a white box brings its own background; only a transparent
+    // one depends on the tile behind it. Light overall, or a fifth of it
+    // white: a version made for dark backgrounds (white lettering beside
+    // brand colours) averages mid-tone but would still lose its lettering
+    // on a light tile. Ordinary colour logos measure ~5% white.
+    isLightArtwork: !onWhite && weightSum > 0
+      && (lumaSum / weightSum > 200 || solidWhite / solid > 0.2),
   };
+}
+
+/**
+ * Make a logo's off-white box pure white. Exports often carry a background of
+ * #FDFDFD or similar, which shows as a faint grey panel on the pure-white
+ * tile and hero plate the logo is placed on.
+ */
+function whitenBackground(canvas) {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const { data } = image;
+  for (let i = 0; i < data.length; i += 4) {
+    if (isNearWhite(data[i], data[i + 1], data[i + 2])) {
+      data[i] = data[i + 1] = data[i + 2] = data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
 }
 
 function toBlob(canvas, format) {
@@ -176,7 +222,7 @@ export async function prepareLogo(file) {
   } catch {
     // A canvas the browser considers tainted cannot be read back. Keep the
     // logo untrimmed rather than refusing it.
-    result = { box: { x: 0, y: 0, width: work.width, height: work.height }, isLightArtwork: false };
+    result = { box: { x: 0, y: 0, width: work.width, height: work.height }, onWhite: false, isLightArtwork: false };
   }
   if (!result) {
     throw new Error('This image looks blank. Check that the logo is not white on a transparent background with nothing else in it.');
@@ -187,6 +233,7 @@ export async function prepareLogo(file) {
   const trimmed = drawScaled(canvas, box.x, box.y, box.width, box.height, out.width, out.height);
   canvas.width = canvas.height = 0; // Safari caps total canvas memory
   canvas = trimmed;
+  if (result.onWhite) whitenBackground(canvas);
 
   let format = WEBP;
   let blob = await toBlob(canvas, format);
