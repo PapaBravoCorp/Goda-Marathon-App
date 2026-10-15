@@ -77,7 +77,7 @@ export function HeroPartners({ sponsors }) {
       animate={{ opacity: 1, y: 0 }}
       className="hero-partners"
     >
-      {shared && <p className="hero-partners-label" aria-hidden="true">{shared}</p>}
+      {/* {shared && <p className="hero-partners-label" aria-hidden="true">{shared}</p>} */}
       <ul className="hero-partners-logos" aria-label={shared || 'Event partners'}>
         {featured.map(s => (
           <li key={s.id} className="hero-partner">
