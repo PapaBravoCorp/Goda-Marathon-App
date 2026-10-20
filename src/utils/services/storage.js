@@ -9,6 +9,10 @@ export const MAX_FILE_BYTES = 10 * 1024 * 1024; // must match the bucket's file_
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 export const ACCEPTED_VIDEO_TYPES = ['video/mp4'];
 export const SPONSOR_FOLDER = 'sponsors';
+export const COURSE_FOLDER = 'courses';
+// Must be in the bucket's allowed_mime_types (0019). Kept here rather than
+// imported from utils/gpx, which would pull the GPX parser into the main bundle.
+const GPX_CONTENT_TYPE = 'application/gpx+xml';
 
 /**
  * Sanitise a folder path one segment at a time, so nesting like
@@ -159,6 +163,48 @@ export const uploadCoverPhoto = async (cover, originalName, year) => {
     });
   if (error) throw describeStorageError(error);
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+};
+
+/**
+ * Upload a category's course file, already trimmed by prepareCourse(), under
+ * "courses". Returns its public URL, which is all event_categories stores.
+ */
+export const uploadCourseGpx = async (gpx, originalName) => {
+  const path = `${COURSE_FOLDER}/${safeStem(originalName || 'course')}.gpx`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, new Blob([gpx], { type: GPX_CONTENT_TYPE }), {
+      contentType: GPX_CONTENT_TYPE,
+      cacheControl: '31536000',
+      upsert: false,
+    });
+  if (error) {
+    // The bucket lists the file types it takes, and GPX joins the list in 0019.
+    if (/mime type/i.test(error.message || '')) {
+      throw new Error(
+        'Storage does not accept GPX files yet. Run supabase/migrations/0019_category_course_maps.sql in the Supabase SQL editor, then save again.'
+      );
+    }
+    throw describeStorageError(error);
+  }
+  return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+};
+
+/** The text of a course file. A plain fetch: the bucket is public. */
+export const fetchCourseGpx = async (url) => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`The course file returned HTTP ${response.status}.`);
+  return response.text();
+};
+
+/**
+ * A link that saves a course file rather than opening it as text. The
+ * `download` attribute is ignored across origins, so for a file in our bucket
+ * Supabase is asked to send it as an attachment under `fileName`.
+ */
+export const courseDownloadUrl = (url, fileName) => {
+  if (!storagePathFromPublicUrl(url)) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}download=${encodeURIComponent(fileName)}`;
 };
 
 /** True for a cover uploaded by uploadCoverPhoto, as opposed to a gallery file or a link. */

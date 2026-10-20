@@ -108,7 +108,7 @@ export default function Navbar() {
         <div className="container nav-container">
           <Link to="/" className="brand" aria-label="GODA home">
             <img className="brand-mark" src="/banner/logo-mark.png" alt="" aria-hidden="true" width="40" height="40" />
-            <span className="brand-word">GODAVARI EXPEDITION<span className="brand-dot">.</span></span>
+            <span className="brand-word">GODA EPIC TRAIL<span className="brand-dot">.</span></span>
           </Link>
 
           <div className="nav-links">

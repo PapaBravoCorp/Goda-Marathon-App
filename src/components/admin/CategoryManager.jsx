@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Trash2, Edit3, Users, Hash } from 'lucide-react';
 import { getEventCategories, getBibOverview, addEventCategory, updateEventCategory, deleteEventCategory } from '../../utils/services/categories';
+import { uploadCourseGpx, deleteStoredImageAt } from '../../utils/services/storage';
 import { describeSaveError } from '../../utils/services/errors';
 import { CATEGORY_LEVELS, levelLabel } from '../../utils/categoryLevels';
 import { formatBibSeries, validateBibSeries } from '../../utils/bibSeries';
+import { prepareCourse } from '../../utils/gpx';
 import BibSeriesPanel from './BibSeriesPanel';
+import CourseMapField from './CourseMapField';
 
 export default function CategoryManager({ eventId, eventSlug }) {
   const [categories, setCategories] = useState([]);
@@ -14,6 +17,8 @@ export default function CategoryManager({ eventId, eventSlug }) {
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  // A course file read and trimmed, waiting for the category to be saved.
+  const [pendingCourse, setPendingCourse] = useState(null);
 
   const emptyForm = {
     name: '', distance: '', elevation: '0m', price: '',
@@ -25,6 +30,8 @@ export default function CategoryManager({ eventId, eventSlug }) {
     level: '', audience: '',
     // Bib series (0017). Both empty: the database picks one from the distance.
     bib_start: '', bib_end: '',
+    // Course map (0019): URL of the uploaded GPX, empty for none.
+    route_gpx: '',
   };
   const [formData, setFormData] = useState(emptyForm);
 
@@ -75,7 +82,21 @@ export default function CategoryManager({ eventId, eventSlug }) {
     if (seriesError) { setFormError(seriesError); return; }
 
     setIsSubmitting(true);
+    let uploadedCourse = null;
     try {
+      const previous = editingId ? categories.find(c => c.id === editingId) : null;
+      let routeGpx = formData.route_gpx || null;
+      if (pendingCourse) {
+        // Written again under the name being saved, which is the name a
+        // runner's watch shows; the file may have been chosen before it was typed.
+        const { gpx } = prepareCourse(pendingCourse.source, pendingCourse.lineIndex, formData.name.trim());
+        uploadedCourse = await uploadCourseGpx(gpx, pendingCourse.fileName);
+        routeGpx = uploadedCourse;
+      }
+      // Sent only when it changes, so a database without migration 0019 still
+      // saves every other edit.
+      const courseChanged = routeGpx !== (previous?.route_gpx ?? null);
+
       const payload = {
         event_id: eventId,
         name: formData.name.trim(),
@@ -94,6 +115,7 @@ export default function CategoryManager({ eventId, eventSlug }) {
         // Both null asks the database for a series coded by distance.
         bib_start: String(formData.bib_start).trim() ? parseInt(formData.bib_start) : null,
         bib_end: String(formData.bib_end).trim() ? parseInt(formData.bib_end) : null,
+        ...(courseChanged ? { route_gpx: routeGpx } : {}),
       };
 
       if (editingId) {
@@ -101,11 +123,16 @@ export default function CategoryManager({ eventId, eventSlug }) {
       } else {
         await addEventCategory(payload);
       }
+      // The row no longer points at the old course file.
+      if (courseChanged && previous?.route_gpx) deleteStoredImageAt(previous.route_gpx);
       setFormData(emptyForm);
+      setPendingCourse(null);
       setShowForm(false);
       setEditingId(null);
       await loadData();
     } catch (err) {
+      // The row still points at the old course, so the new file is an orphan.
+      if (uploadedCourse) deleteStoredImageAt(uploadedCourse);
       // The message matters now: after the RLS lockdown the usual cause is an
       // expired session, and "please try again" sends the organiser round the
       // same loop forever.
@@ -124,20 +151,25 @@ export default function CategoryManager({ eventId, eventSlug }) {
       perks: perksToLines(cat.perks), elevation_image: cat.elevation_image || '',
       level: cat.level || '', audience: cat.audience || '',
       bib_start: cat.bib_start ?? '', bib_end: cat.bib_end ?? '',
+      route_gpx: cat.route_gpx || '',
     });
+    setPendingCourse(null);
     setEditingId(cat.id);
     setShowForm(true);
     setFormError('');
   };
 
   const handleDelete = async (id, name) => {
-    const count = categories.find(c => c.id === id)?.registration_count || 0;
+    const category = categories.find(c => c.id === id);
+    const count = category?.registration_count || 0;
     const msg = count > 0
       ? `"${name}" has ${count} registrations. Are you sure you want to delete this category?`
       : `Delete category "${name}"?`;
     if (!window.confirm(msg)) return;
     try {
       await deleteEventCategory(id);
+      // Nothing points at its course file any more.
+      if (category?.route_gpx) deleteStoredImageAt(category.route_gpx);
       await loadData();
     } catch (err) {
       setFormError(describeSaveError(err, 'category'));
@@ -148,6 +180,7 @@ export default function CategoryManager({ eventId, eventSlug }) {
     setShowForm(false);
     setEditingId(null);
     setFormData(emptyForm);
+    setPendingCourse(null);
     setFormError('');
   };
 
@@ -270,10 +303,23 @@ export default function CategoryManager({ eventId, eventSlug }) {
             <span className="admin-field-hint">Revealed by the card&apos;s &ldquo;View Route&rdquo; toggle. Leave empty to hide the toggle.</span>
           </div>
 
+          <div style={{ marginTop: '0.75rem' }}>
+            <CourseMapField
+              value={formData.route_gpx}
+              savedValue={editingId ? categories.find(c => c.id === editingId)?.route_gpx : null}
+              pending={pendingCourse}
+              onPending={(next) => { setPendingCourse(next); setFormError(''); }}
+              onChange={(url) => setFormData(prev => ({ ...prev, route_gpx: url }))}
+              categoryName={formData.name}
+              categoryDistance={formData.distance}
+              disabled={isSubmitting}
+            />
+          </div>
+
           {formError && <div className="admin-login-error" style={{ marginTop: '0.75rem' }}><span>{formError}</span></div>}
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : editingId ? 'Update Category' : 'Add Category'}
+              {isSubmitting ? (pendingCourse ? 'Uploading course…' : 'Saving...') : editingId ? 'Update Category' : 'Add Category'}
             </button>
             {editingId && (
               <button type="button" className="btn btn-outline" onClick={cancelForm}>Cancel Edit</button>
@@ -318,6 +364,7 @@ export default function CategoryManager({ eventId, eventSlug }) {
                     <span>Min Age: {cat.min_age || 5}</span>
                     <span>Flag-off: {cat.flag_off_time || '—'}</span>
                     <span>Level: {levelLabel(cat.level) || 'Not set'}</span>
+                    <span>Course map: {cat.route_gpx ? 'Uploaded' : 'None'}</span>
                   </div>
                   <div className="admin-cat-slots">
                     <div className="admin-cat-slots-label">

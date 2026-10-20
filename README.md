@@ -98,6 +98,7 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0012_cancel_reservation.sql` | Lets a runner release their own unpaid reservation from the payment step |
 | `0015_sponsors.sql` | Sponsor logos for the homepage strip and hero partner credit (Admin → Content → Sponsors) |
 | `0017_category_bib_series.sql` | A bib number series per category (21 km → 21001–21999), issued by the database; renumbers live entries of upcoming events |
+| `0019_category_course_maps.sql` | A GPX course map per category (`event_categories.route_gpx`); lets the media bucket accept GPX files |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which
 missed allow-all policies that had been created outside these migrations. It
@@ -395,6 +396,19 @@ a per-event counter, which 0017 replaces in turn.
 
 **Entry prices** are read from `event_categories` inside the database. The
 browser used to send the price, so anyone could enter any category for zero.
+
+**Course maps** come from a GPX file per category (Admin → Categories → Course
+map). The browser checks the file and trims it, keeping every bend over 4 m and
+every rise over 3 m, so a one-second watch recording of a 17 km course drops
+from 1.2 MB to about 11 KB. It is uploaded to the media bucket under `courses/`
+when the category is saved. Waypoints in the file that lie within 150 m of the
+course are listed as stops with their distance. The event page draws the course
+with Leaflet on OpenStreetMap tiles (OpenTopoMap as the Terrain layer), adds an
+elevation profile, and offers the same file as a download for runners' watches;
+categories without a file show no map. Both tile services are free with
+attribution at this site's traffic. Their hosts are listed under `img-src` in
+`vercel.json`, so a different tile provider needs its host added there as well,
+or production blocks its tiles.
 
 ---
 

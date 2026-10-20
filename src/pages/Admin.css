@@ -2849,6 +2849,22 @@
   .admin-logo-preview { width: 100%; }
 }
 
+/* Course map preview (Categories → Edit): the event page's own map, compact. */
+.admin-course-preview {
+  margin-top: 0.75rem;
+}
+
+.admin-course-preview-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
 /* Hero video preview in Event Settings: the same wide frame as the hero. */
 .admin-hero-video-preview {
   display: block;

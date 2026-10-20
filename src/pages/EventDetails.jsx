@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { MapPin, Calendar, Clock, Award, Info, Loader } from 'lucide-react';
@@ -7,6 +7,11 @@ import { getEventCategories } from '../utils/services/categories';
 import { getEventSchedule } from '../utils/services/schedule';
 import Seo from '../components/Seo';
 import { HeroImage } from '../components/HeroImage';
+import ErrorBoundary from '../components/ErrorBoundary';
+
+// Leaflet and the course maps are about 50 KB of gzipped JavaScript that only
+// this page needs, and only once a course is uploaded, so they load on demand.
+const CourseMaps = lazy(() => import('../components/CourseMaps'));
 
 // Hardcoded fallback if DB fetch fails
 const FALLBACK_EVENT = {
@@ -94,6 +99,7 @@ export default function EventDetails() {
   const categories = dbCategories.length > 0 ? dbCategories : (e.categories || []);
   const schedule = dbSchedule.length > 0 ? dbSchedule.map(s => ({ time: s.time, title: s.title, day: s.day_label })) : (e.schedule || []);
   const features = e.features || [];
+  const mappedCategories = categories.filter(c => c.route_gpx);
 
   // Group schedule items by "day" headers
   const scheduleGroups = [];
@@ -181,12 +187,23 @@ export default function EventDetails() {
               </div>
             </div>
 
-            {/* Route Map Placeholder */}
-            <h3 style={{ marginBottom: '24px' }}>Course Map</h3>
-            <div style={{ width: '100%', height: '400px', backgroundColor: 'var(--color-bg-surface-light)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'var(--color-text-muted)', border: '1px dashed var(--color-border-light)', marginBottom: '40px' }}>
-              <MapPin size={48} style={{ marginBottom: '16px' }} />
-              <p>Interactive Route Map (Coming Soon)</p>
-            </div>
+            {/* Course maps: one per category with a GPX file uploaded in
+                Admin → Categories. The placeholder stays until there is one. */}
+            <h3 id="course-map" style={{ marginBottom: '24px' }}>Course Map</h3>
+            {mappedCategories.length > 0 ? (
+              <div style={{ marginBottom: '40px' }}>
+                <ErrorBoundary fallback={<p className="text-muted">The course map could not be shown. Reloading the page usually fixes this.</p>}>
+                  <Suspense fallback={<div style={{ height: '520px', borderRadius: '16px', backgroundColor: 'var(--color-bg-surface-light)' }} />}>
+                    <CourseMaps categories={mappedCategories} eventName={e.name} />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+            ) : (
+              <div style={{ width: '100%', height: '400px', backgroundColor: 'var(--color-bg-surface-light)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'var(--color-text-muted)', border: '1px dashed var(--color-border-light)', marginBottom: '40px' }}>
+                <MapPin size={48} style={{ marginBottom: '16px' }} />
+                <p>Interactive Route Map (Coming Soon)</p>
+              </div>
+            )}
 
             {/* Schedule */}
             {scheduleGroups.length > 0 && (

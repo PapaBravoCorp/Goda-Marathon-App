@@ -11,6 +11,9 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
  * saved.
  *
  * Class component on purpose -- componentDidCatch has no hook equivalent.
+ *
+ * Pass `fallback` to contain a crash to one part of a page (the course map,
+ * say) and show that in its place; without it the whole route is replaced.
  */
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -35,6 +38,7 @@ export default class ErrorBoundary extends React.Component {
 
   render() {
     if (!this.state.error) return this.props.children;
+    if (this.props.fallback !== undefined) return this.props.fallback;
 
     return (
       <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
