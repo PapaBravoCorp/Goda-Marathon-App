@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Check, Loader, AlertCircle } from 'lucide-react';
-import { FaInstagram, FaFacebook } from 'react-icons/fa';
+import { Check, Loader, AlertCircle, Phone } from 'lucide-react';
+import { FaInstagram, FaFacebook, FaWhatsapp } from 'react-icons/fa';
 import { subscribe } from '../utils/services/newsletter';
 import { ORGANISATION } from '../utils/constants';
+import { useSiteSettings } from '../utils/useSiteSettings';
+import { resolveSiteBranding } from '../utils/siteBranding';
+import { BrandMark } from './BrandMark';
 
 export default function Footer() {
+  // Logo, about line, contact numbers and copyright name: Admin -> Website.
+  const branding = resolveSiteBranding(useSiteSettings());
   const [email, setEmail] = useState('');
   const [state, setState] = useState('idle'); // idle | sending | done | error
   const [message, setMessage] = useState('');
@@ -38,13 +43,10 @@ export default function Footer() {
         <div className="footer-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           <div>
             <Link to="/" className="brand" style={{ marginBottom: '24px', display: 'flex' }}>
-              {/* <Activity color="var(--color-primary)" size={28} /> */}
-              <img className="brand-mark" src="/banner/logo-mark.png" alt="" aria-hidden="true" width="40" height="40" />
-              <span>GODA EPIC TRAIL<span className="text-primary">.</span></span>
+              <BrandMark wordClassName="" dotClassName="text-primary" />
             </Link>
             <p className="text-muted" style={{ maxWidth: '300px', marginBottom: '24px' }}>
-              Bringing people together through the power of sport. Organised by{' '}
-              {ORGANISATION.name} and {ORGANISATION.coOrganiser}.
+              {branding.footerAbout}
             </p>
             {/* These pointed at href="#", so every one of them scrolled the
                 visitor to the top of the page instead of opening anything. */}
@@ -85,6 +87,32 @@ export default function Footer() {
           <div>
             <h2 className="footer-title">Contact &amp; Support</h2>
             <ul className="footer-links">
+              {branding.footerContacts.map(contact => (
+                <li key={`${contact.name}-${contact.telHref}`} className="footer-contact">
+                  <a href={contact.telHref} className="footer-contact-call">
+                    <Phone size={15} aria-hidden="true" />
+                    <span>
+                      <span className="footer-contact-name">
+                        {contact.name}
+                        {contact.role && <span className="footer-contact-role"> · {contact.role}</span>}
+                      </span>
+                      <span className="footer-contact-number">{contact.display}</span>
+                    </span>
+                  </a>
+                  {contact.whatsappHref && (
+                    <a
+                      href={contact.whatsappHref}
+                      className="footer-contact-wa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`WhatsApp ${contact.name} (opens in a new tab)`}
+                      title={`WhatsApp ${contact.name}`}
+                    >
+                      <FaWhatsapp size={18} aria-hidden="true" />
+                    </a>
+                  )}
+                </li>
+              ))}
               <li><Link to="/contact">Contact Us</Link></li>
               {/* Was href="#". The FAQ is a section on the homepage. */}
               <li><Link to="/#faq">FAQ</Link></li>
@@ -150,7 +178,7 @@ export default function Footer() {
         </div>
 
         <div className="copyright">
-          <p>© {new Date().getFullYear()} {ORGANISATION.legalName}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {branding.footerCopyright}. All rights reserved.</p>
           {/* Every live site needs these reachable from every page, and a
               payment gateway will check for them during onboarding. */}
           <nav className="footer-legal" aria-label="Policies">

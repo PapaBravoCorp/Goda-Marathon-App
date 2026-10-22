@@ -73,6 +73,58 @@
 
 .brand-dot { color: var(--color-primary-text); }
 
+/* Holds the logo's place on a first visit until it is known which logo to
+   show (BrandMark), so the built-in one never flashes up first. */
+.brand-mark--pending {
+  visibility: hidden;
+}
+
+/* A logo uploaded in Admin -> Website. Unlike the built-in round mark it can
+   be any shape, so it keeps its proportions inside a fixed height. "light"
+   and "dark" put it on a plate so it reads over the hero photo and on either
+   theme; "none" is for artwork cut out to work on both. */
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 44px;
+  max-width: 148px;
+  border-radius: 10px;
+  transition: transform var(--transition-fast);
+}
+
+.brand-logo img {
+  display: block;
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.brand-logo.is-light {
+  padding: 4px 8px;
+  background: #fff;
+  border: 1px solid rgba(var(--color-primary-rgb), 0.28);
+}
+
+.brand-logo.is-dark {
+  padding: 4px 8px;
+  background: #13223A;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.brand:hover .brand-logo {
+  transform: scale(1.04);
+}
+
+@media (max-width: 420px) {
+  .brand-logo {
+    height: 40px;
+    max-width: 112px;
+  }
+}
+
 /* ── Links ────────────────────────────────────────────────────────────── */
 .nav-links {
   display: none;

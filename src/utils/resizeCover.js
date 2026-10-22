@@ -13,12 +13,15 @@ export const COVER_WIDTH = 1200;
 // Below this a cover is upscaled on a high-density laptop screen.
 export const SHARP_COVER_WIDTH = 900;
 
-/** Returns { blob, width, height, ext, contentType }. */
-export async function resizeCover(file) {
+/**
+ * Returns { blob, width, height, ext, contentType }. `maxWidth` is for other
+ * photos drawn smaller than a cover, such as a guest's portrait.
+ */
+export async function resizeCover(file, maxWidth = COVER_WIDTH) {
   const img = await loadImage(file);
   const { naturalWidth, naturalHeight } = img;
   const heightFor = (w) => Math.max(1, Math.round((naturalHeight * w) / naturalWidth));
-  const width = Math.min(naturalWidth, COVER_WIDTH);
+  const width = Math.min(naturalWidth, maxWidth);
 
   // Halve towards the target rather than shrinking in one jump, which lets
   // browsers sample coarsely and turns fine detail to noise.

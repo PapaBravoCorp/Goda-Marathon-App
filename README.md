@@ -99,6 +99,7 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0015_sponsors.sql` | Sponsor logos for the homepage strip and hero partner credit (Admin → Content → Sponsors) |
 | `0017_category_bib_series.sql` | A bib number series per category (21 km → 21001–21999), issued by the database; renumbers live entries of upcoming events |
 | `0019_category_course_maps.sql` | A GPX course map per category (`event_categories.route_gpx`); lets the media bucket accept GPX files |
+| `0020_website_settings.sql` | Admin → Website: header and hero logos, the Register Now effect, the hero's Distances box, the Event Details heading, footer contacts, about line and copyright name, and the homepage Guests of Honour (`featured_guests`) |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which
 missed allow-all policies that had been created outside these migrations. It
@@ -396,6 +397,18 @@ a per-event counter, which 0017 replaces in turn.
 
 **Entry prices** are read from `event_categories` inside the database. The
 browser used to send the price, so anyone could enter any category for zero.
+
+**Logos, footer contacts and guests** are set in Admin → Website (0020), so
+none of them needs a deploy. Every field there is optional: left empty, the
+site keeps its built-in default (the round logo-mark, the "GODA EPIC TRAIL"
+headline, the organiser's legal name in the copyright line). Two settings
+change the look as soon as 0020 runs, because they were asked for: the hero's
+Distances box lists each distance instead of a range, and Register Now
+pulses. Both can be switched back there. The pulse never plays for visitors
+whose device asks for reduced motion. A hidden guest is not readable with the
+public key, so someone not yet confirmed can be prepared in advance. The
+favicon (`public/logo-mark.svg`) is a file, not a setting: replace it in the
+repository when the logo changes.
 
 **Course maps** come from a GPX file per category (Admin → Categories → Course
 map). The browser checks the file and trims it, keeping every bend over 4 m and

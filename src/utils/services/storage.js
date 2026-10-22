@@ -10,6 +10,8 @@ export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'i
 export const ACCEPTED_VIDEO_TYPES = ['video/mp4'];
 export const SPONSOR_FOLDER = 'sponsors';
 export const COURSE_FOLDER = 'courses';
+export const BRANDING_FOLDER = 'branding';
+export const GUEST_FOLDER = 'guests';
 // Must be in the bucket's allowed_mime_types (0019). Kept here rather than
 // imported from utils/gpx, which would pull the GPX parser into the main bundle.
 const GPX_CONTENT_TYPE = 'application/gpx+xml';
@@ -147,6 +149,33 @@ export const uploadSponsorLogo = async (logo, originalName) => {
   if (error) throw describeStorageError(error);
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 };
+
+/** Upload an image already processed in the browser to `path`; returns its public URL. */
+async function uploadProcessed(image, path) {
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, image.blob, {
+      contentType: image.contentType,
+      cacheControl: '31536000',
+      upsert: false,
+    });
+  if (error) throw describeStorageError(error);
+  return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+/**
+ * Upload the header or hero logo, already processed by prepareLogo(), under
+ * "branding". Returns its public URL, which is all site_settings stores.
+ */
+export const uploadBrandingLogo = (logo, originalName) =>
+  uploadProcessed(logo, `${BRANDING_FOLDER}/${safeStem(originalName || 'logo')}.${logo.ext}`);
+
+/**
+ * Upload a guest's photo, already resized by resizeCover(), under "guests".
+ * Returns its public URL, which is all featured_guests stores.
+ */
+export const uploadGuestPhoto = (photo, originalName) =>
+  uploadProcessed(photo, `${GUEST_FOLDER}/${safeStem(originalName || 'guest')}.${photo.ext}`);
 
 /**
  * Upload an edition cover already resized by resizeCover(), under

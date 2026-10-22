@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Lock, LogOut, Eye, EyeOff, ShieldCheck, Users, LayoutGrid,
   CalendarClock, Image, Settings, Mail, MessageSquare, Mailbox, AlertTriangle,
-  UsersRound, Tag,
+  UsersRound, Tag, Globe,
 } from 'lucide-react';
 import { CURRENT_EVENT } from '../utils/constants';
 import { getCurrentEvent } from '../utils/services/events';
@@ -17,6 +17,7 @@ import PastEventsManager from '../components/admin/PastEventsManager';
 import EventSettings from '../components/admin/EventSettings';
 import NotificationsManager from '../components/admin/NotificationsManager';
 import ContentManager from '../components/admin/ContentManager';
+import WebsiteSettings from '../components/admin/WebsiteSettings';
 import SubscriberManager from '../components/admin/SubscriberManager';
 import Seo from '../components/Seo';
 
@@ -130,6 +131,7 @@ const TABS = [
   { id: 'schedule', label: 'Schedule', icon: CalendarClock },
   { id: 'media', label: 'Past Events', icon: Image },
   { id: 'content', label: 'Content', icon: MessageSquare },
+  { id: 'website', label: 'Website', icon: Globe },
   { id: 'event', label: 'Settings', icon: Settings },
   { id: 'notifications', label: 'Email', icon: Mail },
   { id: 'subscribers', label: 'Subscribers', icon: Mailbox },
@@ -233,6 +235,7 @@ export default function Admin() {
         {activeTab === 'schedule' && <ScheduleManager eventId={eventId} />}
         {activeTab === 'media' && <PastEventsManager />}
         {activeTab === 'content' && <ContentManager />}
+        {activeTab === 'website' && <WebsiteSettings />}
         {activeTab === 'event' && <EventSettings />}
         {activeTab === 'notifications' && (
           <NotificationsManager eventUuid={eventId} eventSlug={eventId} />

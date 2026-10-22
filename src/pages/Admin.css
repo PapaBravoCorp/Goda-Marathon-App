@@ -2877,3 +2877,137 @@
   background: #000;
   object-fit: cover;
 }
+
+/* ========================================
+   Website tab (Admin -> Website)
+   ======================================== */
+.admin-website-save {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-website-save .admin-hero-field-badge {
+  margin-top: 0;
+}
+
+/* Logo previews in the Website tab. "None" has no plate, so it is shown on a
+   checkerboard, or on the real hero photo when there is one. */
+.admin-logo-preview.is-none {
+  background: repeating-conic-gradient(#22324D 0% 25%, #182638 0% 50%) 50% / 16px 16px;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.admin-logo-preview.is-none.has-photo {
+  background-size: cover;
+  background-position: center;
+}
+
+/* The hero logo is drawn large on the homepage; a wider stage shows it at a
+   size where its edges can be judged. */
+.admin-logo-preview--hero {
+  width: 280px;
+  height: 150px;
+  padding: 16px 24px;
+}
+
+@media (max-width: 480px) {
+  .admin-logo-preview--hero { width: 100%; height: 140px; }
+}
+
+/* What the hero's Distances box will read, set like the box itself. */
+.admin-website-preview-line {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-main);
+}
+
+/* Footer contact rows: name, role, phone, WhatsApp, actions. */
+.admin-website-contacts {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-website-contact {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: rgba(var(--color-fg-rgb), 0.02);
+}
+
+.admin-website-contact .admin-media-form-group {
+  min-width: 0;
+}
+
+.admin-website-contact-wa {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.admin-website-contact-actions {
+  min-height: 44px;
+}
+
+@media (max-width: 860px) {
+  .admin-website-contact {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .admin-website-contact .admin-media-form-group:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* A phone number needs the full width on a phone, or it is cut off. */
+@media (max-width: 560px) {
+  .admin-website-contact {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .admin-website-contact .admin-media-form-group {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Guest photos: the homepage card's 4:5 portrait crop. */
+.admin-guest-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-bg-surface-light);
+  color: var(--color-text-muted);
+}
+
+.admin-guest-thumb--large {
+  width: 96px;
+}
+
+.admin-guest-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 25%;
+}

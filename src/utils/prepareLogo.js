@@ -199,8 +199,11 @@ function toBlob(canvas, format) {
 /**
  * Returns { blob, width, height, ext, contentType, suggestedBackground, warning }.
  * `suggestedBackground` is 'light' or 'dark'; `warning` is a sentence or null.
+ *
+ * `maxWidth` and `maxHeight` default to the sponsor tile's box. The homepage
+ * hero logo is drawn several times larger and passes a bigger box.
  */
-export async function prepareLogo(file) {
+export async function prepareLogo(file, { maxWidth = MAX_WIDTH, maxHeight = MAX_HEIGHT } = {}) {
   if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
     throw new Error('Choose a PNG, SVG, WEBP or JPG logo.');
   }
@@ -229,7 +232,7 @@ export async function prepareLogo(file) {
   }
 
   const { box } = result;
-  const out = fit(box.width, box.height, MAX_WIDTH, MAX_HEIGHT);
+  const out = fit(box.width, box.height, maxWidth, maxHeight);
   const trimmed = drawScaled(canvas, box.x, box.y, box.width, box.height, out.width, out.height);
   canvas.width = canvas.height = 0; // Safari caps total canvas memory
   canvas = trimmed;
@@ -252,7 +255,7 @@ export async function prepareLogo(file) {
     ext: format.ext,
     contentType: format.type,
     suggestedBackground: result.isLightArtwork ? 'dark' : 'light',
-    warning: out.height < SHARP_HEIGHT && out.width < MAX_WIDTH
+    warning: out.height < SHARP_HEIGHT && out.width < maxWidth
       ? `This logo is only ${out.width} × ${out.height} px once its margins are trimmed, so it may look soft. A larger PNG or an SVG will be sharper.`
       : null,
   };

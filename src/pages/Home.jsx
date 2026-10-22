@@ -16,15 +16,22 @@ import { HeroPartners, SponsorsSection } from '../components/Sponsors';
 import { StorySoFar } from '../components/StorySoFar';
 import { Highlights } from '../components/Highlights';
 import { FirstTimerGuide } from '../components/FirstTimerGuide';
+import { FeaturedGuests } from '../components/FeaturedGuests';
 
 import { getCurrentEvent } from '../utils/services/events';
 import { getEventCategories } from '../utils/services/categories';
 import { getPublishedSponsors } from '../utils/services/sponsors';
 import { getPublishedPastEvents } from '../utils/services/pastEvents';
 import { getPublishedHomepageBlocks } from '../utils/services/homepageBlocks';
+import { getPublishedGuests } from '../utils/services/guests';
+import { getSiteSettings } from '../utils/services/siteSettings';
+import { useSiteSettings } from '../utils/useSiteSettings';
+import { resolveSiteBranding } from '../utils/siteBranding';
+import { resolveImageUrl } from '../utils/mediaUrl';
 import { levelLabel } from '../utils/categoryLevels';
 import { CURRENT_EVENT } from '../utils/constants';
 import { formatHeroDate, buildCountdownTarget } from '../utils/dates';
+import { toNumber, toKm, describeDistanceRange, distanceLabels } from '../utils/distances';
 
 // Used only when the DB is unreachable or holds no current event, so the
 // landing page degrades to the previous static content instead of blanking.
@@ -47,28 +54,6 @@ function formatPrice(value) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency', currency: 'INR', maximumFractionDigits: 0,
   }).format(n);
-}
-
-/** Leading number out of "15km" / "300m" — NaN-safe for free-text values. */
-function toNumber(value) {
-  const n = parseFloat(String(value ?? '').replace(/[^\d.]/g, ''));
-  return Number.isFinite(n) ? n : 0;
-}
-
-/** A category distance in km: "15km" → 15, "300m" → 0.3. Unreadable text is 0. */
-function toKm(value) {
-  const text = String(value ?? '').toLowerCase();
-  const n = toNumber(text);
-  return /\d\s*m\b/.test(text) && !text.includes('km') ? n / 1000 : n;
-}
-
-/** [3, 5, 21] → "3–21 km"; null when no distance could be read. */
-function describeDistanceRange(distancesKm) {
-  if (distancesKm.length === 0) return null;
-  const fmt = (n) => String(Number(n.toFixed(1)));
-  const min = Math.min(...distancesKm);
-  const max = Math.max(...distancesKm);
-  return min === max ? `${fmt(max)} km` : `${fmt(min)}–${fmt(max)} km`;
 }
 
 // At or below this many places, the card's badge turns orange.
@@ -98,7 +83,10 @@ export default function Home() {
   const [sponsors, setSponsors] = useState([]);
   const [pastEditions, setPastEditions] = useState([]);
   const [blocks, setBlocks] = useState({ story: [], usp: [], tip: [] });
+  const [guests, setGuests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Hero logo, Register Now effect, distances and the guests band: Admin -> Website.
+  const branding = resolveSiteBranding(useSiteSettings());
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +101,9 @@ export default function Home() {
       const sponsorsRequest = getPublishedSponsors();
       const pastEditionsRequest = getPublishedPastEvents();
       const blocksRequest = getPublishedHomepageBlocks();
+      const guestsRequest = getPublishedGuests();
+      // Shared with the header; awaited so the hero logo is there on first paint.
+      const settingsRequest = getSiteSettings();
 
       try {
         const data = await getCurrentEvent();
@@ -127,13 +118,14 @@ export default function Home() {
         if (!cancelled) setEvent(FALLBACK_EVENT);
       }
 
-      const [sponsorRows, editionRows, blockGroups] = await Promise.all([
-        sponsorsRequest, pastEditionsRequest, blocksRequest,
+      const [sponsorRows, editionRows, blockGroups, guestRows] = await Promise.all([
+        sponsorsRequest, pastEditionsRequest, blocksRequest, guestsRequest, settingsRequest,
       ]);
       if (cancelled) return;
       setSponsors(sponsorRows);
       setPastEditions(editionRows);
       setBlocks(blockGroups);
+      setGuests(guestRows);
       setIsLoading(false);
     })();
 
@@ -178,6 +170,24 @@ export default function Home() {
     maxElevation > 0 && `up to ${maxElevation}m elevation`,
   ].filter(Boolean).join(' · ');
 
+  // Each distance as its own chip ("list"), the admin's own words ("custom"),
+  // or the range. Falls back to the range while there is nothing to list.
+  const chips = branding.distancesMode === 'list' ? distanceLabels(categories) : [];
+  const distancesText = branding.distancesMode === 'custom' && branding.distancesText
+    ? branding.distancesText
+    : distanceRange || routeCount || 'Coming soon';
+
+  const headline = e.hero_headline || FALLBACK_EVENT.hero_headline;
+  const heroLogo = branding.heroLogo && (
+    <span className={`hero-logo is-${branding.heroLogoPlate}`}>
+      <img src={resolveImageUrl(branding.heroLogo)} alt="" decoding="async" fetchPriority="high" />
+    </span>
+  );
+  const logoIsHeadline = !!heroLogo && branding.heroLogoPlacement === 'replace';
+  const ctaClassName = branding.ctaEffect !== 'none'
+    ? `cta-attention cta-attention--${branding.ctaEffect}`
+    : '';
+
   // The first-timer guide renders when there is a beginner distance or a tip
   // to show, and the hero's second button points at it when it does.
   const starters = categories.filter(c => c.level === 'beginner');
@@ -213,15 +223,27 @@ export default function Home() {
           <motion.span initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="badge badge-primary hero-badge">
             {e.edition ? `${e.edition} Edition` : 'Upcoming Event'}
           </motion.span>
-          <motion.h1 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="hero-title">
-            <HeroHeadline text={e.hero_headline || FALLBACK_EVENT.hero_headline} />
+          {heroLogo && !logoIsHeadline && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="hero-logo-above">
+              {heroLogo}
+            </motion.div>
+          )}
+          <motion.h1 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className={`hero-title${logoIsHeadline ? ' hero-title--logo' : ''}`}>
+            {logoIsHeadline ? (
+              <>
+                <span className="sr-only">{headline}</span>
+                {heroLogo}
+              </>
+            ) : (
+              <HeroHeadline text={headline} />
+            )}
           </motion.h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-muted hero-subcopy">
             {e.hero_subcopy || e.description || FALLBACK_EVENT.hero_subcopy}
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0 justify-center">
             {registrationOpen ? (
-              <Link to="/register" className="w-full sm:w-auto"><Button variant="primary" style={{ fontSize: '1.125rem', padding: '16px 40px', width: '100%' }}>Register Now</Button></Link>
+              <Link to="/register" className="w-full sm:w-auto"><Button variant="primary" className={ctaClassName} style={{ fontSize: '1.125rem', padding: '16px 40px', width: '100%' }}>Register Now</Button></Link>
             ) : (
               <Link to="/event" className="w-full sm:w-auto"><Button variant="primary" style={{ fontSize: '1.125rem', padding: '16px 40px', width: '100%' }}>View Event</Button></Link>
             )}
@@ -255,9 +277,15 @@ export default function Home() {
               <div className="flex items-center justify-center gap-sm text-primary mb-sm">
                 <Mountain size={24} /> <span style={{ fontWeight: 600 }}>Distances</span>
               </div>
-              <p style={{ fontWeight: 800, fontSize: '1.2rem', textTransform: 'uppercase', margin: 0 }}>
-                {distanceRange || routeCount || 'Coming soon'}
-              </p>
+              {chips.length > 0 ? (
+                <ul className="hero-distances" aria-label="Race distances">
+                  {chips.map(label => <li key={label}>{label}</li>)}
+                </ul>
+              ) : (
+                <p style={{ fontWeight: 800, fontSize: '1.2rem', textTransform: 'uppercase', margin: 0 }}>
+                  {distancesText}
+                </p>
+              )}
               {distanceDetail && (
                 <p className="text-muted" style={{ fontSize: '0.85rem', margin: '4px 0 0' }}>{distanceDetail}</p>
               )}
@@ -268,6 +296,9 @@ export default function Home() {
 
       {/* Past editions leading up to this one. Renders nothing until one is published. */}
       <StorySoFar story={blocks.story} editions={pastEditions} event={e} registrationOpen={registrationOpen} />
+
+      {/* Well-known people, with photos. Renders nothing until one is published. */}
+      <FeaturedGuests guests={guests} heading={branding.guestsHeading} intro={branding.guestsIntro} />
 
       {/* "What makes it different". Renders nothing until a point is published. */}
       <Highlights items={blocks.usp} />

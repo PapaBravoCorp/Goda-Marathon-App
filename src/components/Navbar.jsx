@@ -4,6 +4,7 @@ import { Lock, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCurrentEvent } from '../utils/services/events';
 import { ThemeToggle } from './ThemeToggle';
+import { BrandMark } from './BrandMark';
 import './Navbar.css';
 
 const NAV_ITEMS = [
@@ -107,8 +108,7 @@ export default function Navbar() {
       <nav className={`navbar ${isScrolled ? 'is-scrolled' : ''}`}>
         <div className="container nav-container">
           <Link to="/" className="brand" aria-label="GODA home">
-            <img className="brand-mark" src="/banner/logo-mark.png" alt="" aria-hidden="true" width="40" height="40" />
-            <span className="brand-word">GODA EPIC TRAIL<span className="brand-dot">.</span></span>
+            <BrandMark />
           </Link>
 
           <div className="nav-links">
@@ -169,8 +169,7 @@ export default function Navbar() {
           >
             <div className="flex justify-between items-center mb-12">
               <Link to="/" className="brand">
-                <img className="brand-mark" src="/banner/logo-mark.png" alt="" aria-hidden="true" width="40" height="40" />
-                <span className="brand-word">GODA<span className="brand-dot">.</span></span>
+                <BrandMark short />
               </Link>
               <button 
                 className="mobile-menu-close"

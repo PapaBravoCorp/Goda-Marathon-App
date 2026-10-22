@@ -2152,3 +2152,337 @@ a.sponsor-logo:hover {
   border-color: var(--color-primary);
   color: var(--color-primary-text);
 }
+
+/* ========================================
+   Admin -> Website: hero logo, Register Now effect, distances, footer
+   contacts and the Guests of Honour band
+   ======================================== */
+
+/* Hero logo. Takes the headline's place (the headline stays in the h1 for
+   screen readers and search engines) or sits above it, smaller. Artwork made
+   for dark photos needs no plate; a drop shadow keeps its edges off the
+   brightest parts of the photo. */
+.hero-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: min(88vw, 640px);
+}
+
+.hero-logo img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  /* About twice the headline's height: big, without pushing the buttons and
+     the date card out of view on a laptop. */
+  max-height: clamp(110px, 20vw, 210px);
+  object-fit: contain;
+  filter: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.45));
+}
+
+.hero-logo.is-light,
+.hero-logo.is-dark {
+  padding: 14px 22px;
+  border-radius: 18px;
+}
+
+.hero-logo.is-light { background: #FFFFFF; }
+
+.hero-logo.is-dark {
+  background: rgba(11, 22, 38, 0.72);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.hero-logo.is-light img,
+.hero-logo.is-dark img {
+  filter: none;
+}
+
+.hero-logo-above {
+  margin-bottom: 18px;
+}
+
+.hero-logo-above .hero-logo img {
+  max-height: clamp(76px, 15vw, 150px);
+}
+
+.hero--home .hero-title.hero-title--logo {
+  line-height: 1;
+  margin-bottom: 20px;
+}
+
+/* Register Now attention effect. It pauses under the pointer and on keyboard
+   focus, and the reduced-motion rule near the top of this file stops it for
+   visitors who ask their device for less motion. Gentle on purpose: one pop
+   or one glow at a time, far below anything that could count as flashing. */
+.cta-attention {
+  position: relative;
+}
+
+.cta-attention::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.cta-attention--pulse {
+  animation: cta-pop 2.4s ease-in-out infinite;
+}
+
+.cta-attention--pulse::after {
+  animation: cta-ring 2.4s ease-out infinite;
+}
+
+.cta-attention--glow {
+  animation: cta-glow 1.4s ease-in-out infinite alternate;
+}
+
+.cta-attention:hover,
+.cta-attention:focus-visible,
+a:focus-visible > .cta-attention,
+.cta-attention:hover::after,
+.cta-attention:focus-visible::after,
+a:focus-visible > .cta-attention::after {
+  animation: none;
+}
+
+@keyframes cta-pop {
+  0%, 30%, 100% { transform: scale(1); }
+  12% { transform: scale(1.07); }
+  21% { transform: scale(0.985); }
+}
+
+@keyframes cta-ring {
+  0% { box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.6); }
+  55%, 100% { box-shadow: 0 0 0 18px rgba(var(--color-primary-rgb), 0); }
+}
+
+@keyframes cta-glow {
+  from {
+    box-shadow: var(--glow-sm);
+  }
+  to {
+    box-shadow:
+      0 0 0 4px rgba(var(--color-primary-rgb), 0.28),
+      0 0 34px 6px rgba(var(--color-primary-rgb), 0.75);
+  }
+}
+
+/* The hero's Distances box, one chip per distance. On one line beside the
+   date and location; wrapping is left to phones, where the box stacks. */
+.hero-distances {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  max-width: 300px;
+  margin: 2px auto 0;
+  padding: 0;
+}
+
+@media (min-width: 768px) {
+  .hero-distances {
+    flex-wrap: nowrap;
+    max-width: none;
+  }
+}
+
+.hero-distances li {
+  padding: 0 9px;
+  border: 1px solid rgba(var(--color-fg-rgb), 0.28);
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Footer phone contacts: tap to call, with an optional WhatsApp button. */
+.footer-contact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-links a.footer-contact-call {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+}
+
+.footer-contact-call svg {
+  flex-shrink: 0;
+  margin-top: 4px;
+  color: var(--color-primary-text);
+}
+
+.footer-contact-name {
+  display: block;
+  color: var(--color-text-main);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.footer-contact-role {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.footer-contact-number {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.footer-links a.footer-contact-wa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--color-fg-rgb), 0.18);
+  color: #25D366;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.footer-links a.footer-contact-wa:hover {
+  color: #25D366;
+  border-color: #25D366;
+  background-color: rgba(37, 211, 102, 0.1);
+}
+
+/* Guests of Honour. Pinned dark like the hero (data-theme in the markup), so
+   the band stands out between the light sections, with each name set on the
+   photo. */
+.guests-section {
+  background:
+    radial-gradient(70% 55% at 50% 0%, rgba(var(--color-primary-rgb), 0.16), transparent 72%),
+    var(--color-bg-base);
+}
+
+.guests-head {
+  margin-bottom: 48px;
+}
+
+.guests-head h2 {
+  font-size: 2.5rem;
+}
+
+.guests-head p {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.guests-grid {
+  list-style: none;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  margin: 0;
+  padding: 0;
+}
+
+/* One or two guests would otherwise stretch across the whole row. */
+.guests-grid.is-few {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 300px));
+  justify-content: center;
+}
+
+.guest-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(var(--color-fg-rgb), 0.1);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.guest-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 25%;
+  transition: transform 0.6s ease;
+}
+
+.guest-card:hover .guest-photo {
+  transform: scale(1.04);
+}
+
+.guest-photo--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  background: var(--color-bg-surface-light);
+}
+
+/* Darkens only the foot of the photo, behind the name. */
+.guest-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg,
+    transparent 42%,
+    rgba(5, 10, 20, 0.55) 66%,
+    rgba(5, 10, 20, 0.92) 100%);
+}
+
+.guest-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  max-width: calc(100% - 28px);
+  padding: 4px 12px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guest-caption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 18px 18px 20px;
+}
+
+.guest-name {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+}
+
+.guest-credential {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.84);
+}

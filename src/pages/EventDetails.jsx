@@ -5,6 +5,9 @@ import { MapPin, Calendar, Clock, Award, Info, Loader } from 'lucide-react';
 import { getCurrentEvent } from '../utils/services/events';
 import { getEventCategories } from '../utils/services/categories';
 import { getEventSchedule } from '../utils/services/schedule';
+import { getSiteSettings } from '../utils/services/siteSettings';
+import { useSiteSettings } from '../utils/useSiteSettings';
+import { resolveSiteBranding } from '../utils/siteBranding';
 import Seo from '../components/Seo';
 import { HeroImage } from '../components/HeroImage';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -51,6 +54,16 @@ function formatEventDate(dateStr) {
   return d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+/**
+ * A heading split around the word "Trail", which is shown in the accent
+ * colour: "GODA Epic Trail Run 2026" → ["GODA Epic ", "Trail", " Run 2026"].
+ * A heading without the word comes back whole, with nothing highlighted.
+ */
+function splitOnTrail(text) {
+  const match = /^(.*?)(trail)(.*)$/i.exec(text);
+  return match ? [match[1], match[2], match[3]] : [text, '', ''];
+}
+
 function formatPrice(price) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
 }
@@ -60,6 +73,8 @@ export default function EventDetails() {
   const [dbCategories, setDbCategories] = useState([]);
   const [dbSchedule, setDbSchedule] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  // The page heading can be set apart from the event name in Admin -> Website.
+  const { eventHeading } = resolveSiteBranding(useSiteSettings());
 
   useEffect(() => {
     loadEvent();
@@ -67,6 +82,9 @@ export default function EventDetails() {
 
   const loadEvent = async () => {
     setIsLoading(true);
+    // Shared with the header. Awaited with the event so the heading does not
+    // change under the visitor a moment after the page appears.
+    const settingsRequest = getSiteSettings();
     try {
       const data = await getCurrentEvent();
       const ev = data || FALLBACK_EVENT;
@@ -83,6 +101,7 @@ export default function EventDetails() {
     } catch {
       setEvent(FALLBACK_EVENT);
     } finally {
+      await settingsRequest;
       setIsLoading(false);
     }
   };
@@ -96,6 +115,7 @@ export default function EventDetails() {
   }
 
   const e = event;
+  const [beforeTrail, trailWord, afterTrail] = splitOnTrail(eventHeading || e.name || 'Goda Epic Trail');
   const categories = dbCategories.length > 0 ? dbCategories : (e.categories || []);
   const schedule = dbSchedule.length > 0 ? dbSchedule.map(s => ({ time: s.time, title: s.title, day: s.day_label })) : (e.schedule || []);
   const features = e.features || [];
@@ -131,15 +151,9 @@ export default function EventDetails() {
         <div className="hero-overlay"></div>
         <div className="container hero-content">
           <h1 style={{ marginBottom: '16px' }}>
-            {e.name ? (
-              <>
-                {e.name.replace(/trail.*/i, '')}
-                <span className="accent-text">{e.name.match(/trail/i) ? 'Trail' : ''}</span>
-                {e.name.replace(/.*trail/i, '')}
-              </>
-            ) : (
-              <>Goda Epic <span className="accent-text">Trail</span></>
-            )}
+            {beforeTrail}
+            {trailWord && <span className="accent-text">{trailWord}</span>}
+            {afterTrail}
           </h1>
           <p className="hero-lede">
             {e.description}

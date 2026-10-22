@@ -39,7 +39,7 @@ export default function EventSettings() {
 
   useEffect(() => {
     let cancelled = false;
-    getSiteSettings().then(row => {
+    getSiteSettings({ fresh: true }).then(row => {
       if (cancelled || !row) return;
       setSiteTheme(row.default_theme);
       setSavedSiteTheme(row.default_theme);
