@@ -17,6 +17,7 @@ import { StorySoFar } from '../components/StorySoFar';
 import { Highlights } from '../components/Highlights';
 import { FirstTimerGuide } from '../components/FirstTimerGuide';
 import { FeaturedGuests } from '../components/FeaturedGuests';
+import { PromoVideos } from '../components/PromoVideos';
 
 import { getCurrentEvent } from '../utils/services/events';
 import { getEventCategories } from '../utils/services/categories';
@@ -24,6 +25,7 @@ import { getPublishedSponsors } from '../utils/services/sponsors';
 import { getPublishedPastEvents } from '../utils/services/pastEvents';
 import { getPublishedHomepageBlocks } from '../utils/services/homepageBlocks';
 import { getPublishedGuests } from '../utils/services/guests';
+import { getPublishedPromoVideos } from '../utils/services/promoVideos';
 import { getSiteSettings } from '../utils/services/siteSettings';
 import { useSiteSettings } from '../utils/useSiteSettings';
 import { resolveSiteBranding } from '../utils/siteBranding';
@@ -84,8 +86,9 @@ export default function Home() {
   const [pastEditions, setPastEditions] = useState([]);
   const [blocks, setBlocks] = useState({ story: [], usp: [], tip: [] });
   const [guests, setGuests] = useState([]);
+  const [promoVideos, setPromoVideos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  // Hero logo, Register Now effect, distances and the guests band: Admin -> Website.
+  // Hero logo, Register Now effect, distances, the videos and guests bands: Admin -> Website.
   const branding = resolveSiteBranding(useSiteSettings());
 
   useEffect(() => {
@@ -102,6 +105,8 @@ export default function Home() {
       const pastEditionsRequest = getPublishedPastEvents();
       const blocksRequest = getPublishedHomepageBlocks();
       const guestsRequest = getPublishedGuests();
+      // Straight under the hero, so arriving late it would push everything down.
+      const promoVideosRequest = getPublishedPromoVideos();
       // Shared with the header; awaited so the hero logo is there on first paint.
       const settingsRequest = getSiteSettings();
 
@@ -118,14 +123,16 @@ export default function Home() {
         if (!cancelled) setEvent(FALLBACK_EVENT);
       }
 
-      const [sponsorRows, editionRows, blockGroups, guestRows] = await Promise.all([
-        sponsorsRequest, pastEditionsRequest, blocksRequest, guestsRequest, settingsRequest,
+      const [sponsorRows, editionRows, blockGroups, guestRows, videoRows] = await Promise.all([
+        sponsorsRequest, pastEditionsRequest, blocksRequest, guestsRequest, promoVideosRequest,
+        settingsRequest,
       ]);
       if (cancelled) return;
       setSponsors(sponsorRows);
       setPastEditions(editionRows);
       setBlocks(blockGroups);
       setGuests(guestRows);
+      setPromoVideos(videoRows);
       setIsLoading(false);
     })();
 
@@ -293,6 +300,9 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      {/* Promo videos, straight after the hero. Renders nothing until one is published. */}
+      <PromoVideos videos={promoVideos} heading={branding.videosHeading} intro={branding.videosIntro} />
 
       {/* Past editions leading up to this one. Renders nothing until one is published. */}
       <StorySoFar story={blocks.story} editions={pastEditions} event={e} registrationOpen={registrationOpen} />

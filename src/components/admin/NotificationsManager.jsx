@@ -4,6 +4,7 @@ import { getRegistrations } from '../../utils/services/registrations';
 import { getEventCategories } from '../../utils/services/categories';
 import { sendBulkEmail, getEmailLog, retryEmail, EmailStatus } from '../../utils/services/email';
 import EmailDeliveryLog from './EmailDeliveryLog';
+import ModalLayer from './ModalLayer';
 
 const TEMPLATES = [
   { id: 'confirm', name: 'Registration Confirmation', subject: 'Your Registration is Confirmed! 🏃', body: 'Dear Runner,\n\nThank you for registering for the GODA Epic Trail Run 2026!\n\nYour registration has been received and confirmed. Please keep this email for your records.\n\nSee you at the starting line!\n\nTeam GODA' },
@@ -219,11 +220,11 @@ export default function NotificationsManager({ eventUuid, eventSlug }) {
       )}
 
       {showPreview && (
-        <div className="admin-modal-overlay" onClick={() => setShowPreview(false)}>
-          <div className="admin-modal glass" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+        <ModalLayer onClose={() => setShowPreview(false)}>
+          <div className="admin-modal glass" role="dialog" aria-modal="true" aria-labelledby="notify-preview-title" style={{ maxWidth: '600px' }}>
             <div className="admin-modal-header">
-              <h3>Email Preview</h3>
-              <button className="admin-modal-close" onClick={() => setShowPreview(false)}>×</button>
+              <h3 id="notify-preview-title">Email Preview</h3>
+              <button type="button" className="admin-modal-close" onClick={() => setShowPreview(false)} aria-label="Close preview"><span aria-hidden="true">×</span></button>
             </div>
             <div className="admin-modal-body" style={{ padding: '1.5rem' }}>
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '1.25rem' }}>
@@ -237,7 +238,7 @@ export default function NotificationsManager({ eventUuid, eventSlug }) {
               </p>
             </div>
           </div>
-        </div>
+        </ModalLayer>
       )}
 
       {activeView === 'log' && (
