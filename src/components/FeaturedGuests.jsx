@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserRound } from 'lucide-react';
 import { resolveImageUrl } from '../utils/mediaUrl';
+import { AccentHeading } from './AccentHeading';
 
 /** Photo, or a placeholder when it fails to load. The name is right below, so the photo itself is decorative. */
 function GuestPhoto({ src }) {
@@ -24,18 +25,6 @@ function GuestPhoto({ src }) {
       decoding="async"
       onError={() => setFailed(true)}
     />
-  );
-}
-
-/** "Guests of Honour" → "Guests of " + highlighted "Honour", like the other section headings. */
-function AccentHeading({ text }) {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  const last = words.pop();
-  return (
-    <>
-      {words.length > 0 && `${words.join(' ')} `}
-      <span className="accent-text">{last}</span>
-    </>
   );
 }
 

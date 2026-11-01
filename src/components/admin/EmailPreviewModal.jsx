@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import ModalLayer from './ModalLayer';
 import { ORGANISATION } from '../../utils/constants';
 // The same file the send-emails edge function renders with, so what is shown
 // here is what runners receive -- not a lookalike that drifts.
@@ -67,11 +68,11 @@ export default function EmailPreviewModal({ event, onClose }) {
   }), [kind, event]);
 
   return (
-    <div className="admin-modal-overlay" onClick={onClose}>
-      <div className="admin-modal glass admin-email-preview-modal" onClick={e => e.stopPropagation()}>
+    <ModalLayer onClose={onClose}>
+      <div className="admin-modal glass admin-email-preview-modal" role="dialog" aria-modal="true" aria-labelledby="email-preview-title">
         <div className="admin-modal-header">
-          <h3>Email preview</h3>
-          <button className="admin-modal-close" onClick={onClose} aria-label="Close preview"><X size={20} /></button>
+          <h3 id="email-preview-title">Email preview</h3>
+          <button type="button" className="admin-modal-close" onClick={onClose} aria-label="Close preview"><X size={20} aria-hidden="true" /></button>
         </div>
         <div className="admin-modal-body">
           <div className="admin-chip-row" role="tablist" aria-label="Which email">
@@ -97,6 +98,6 @@ export default function EmailPreviewModal({ event, onClose }) {
           </p>
         </div>
       </div>
-    </div>
+    </ModalLayer>
   );
 }

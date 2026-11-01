@@ -16,6 +16,7 @@ import {
 import { normalizeMediaUrl, resolveImageUrl, isHotlinkedDrive, getYouTubeId } from '../../utils/mediaUrl';
 import { formatDisplayDate, toInputDate, sanitizeYear } from '../../utils/dates';
 import CoverPhotoField from './CoverPhotoField';
+import ModalLayer from './ModalLayer';
 
 const emptyEvent = {
   year: '', title: '', edition_label: '', event_date: '', location: '',
@@ -607,30 +608,12 @@ function EventFormModal({
   savedCover, pendingCover, onPendingCover, onCoverChange,
   onInput, onSubmit, onClose,
 }) {
-  const firstFieldRef = useRef(null);
-
-  // Mount only. This deliberately does NOT depend on onClose: when it did, every
-  // keystroke re-created the parent's handler, re-ran the effect, and yanked
-  // focus back to the Year field mid-typing.
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    firstFieldRef.current?.focus();
-    return () => { document.body.style.overflow = prevOverflow; };
-  }, []);
-
-  // Separate effect, so re-binding the key handler can never disturb focus.
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
+  // Scroll lock, focus (the Year field, marked data-autofocus), Escape and the
+  // inert page behind all come from ModalLayer.
   return (
-    <div className="admin-modal-overlay" onClick={onClose}>
+    <ModalLayer onClose={onClose}>
       <div
         className="admin-modal admin-modal--wide glass"
-        onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="pe-modal-title"
@@ -644,7 +627,7 @@ function EventFormModal({
                 : 'Create a past edition, then add its photos.'}
             </p>
           </div>
-          <button className="admin-modal-close" onClick={onClose} aria-label="Close"><X size={20} /></button>
+          <button type="button" className="admin-modal-close" onClick={onClose} aria-label="Close"><X size={20} aria-hidden="true" /></button>
         </div>
 
         <form onSubmit={onSubmit} className="admin-modal-form">
@@ -655,7 +638,7 @@ function EventFormModal({
                 <div className="admin-media-form-group">
                   <label htmlFor="pe-year">Year <span className="admin-required">*</span></label>
                   <input
-                    ref={firstFieldRef}
+                    data-autofocus
                     id="pe-year"
                     name="year"
                     value={form.year}
@@ -760,6 +743,6 @@ function EventFormModal({
           </div>
         </form>
       </div>
-    </div>
+    </ModalLayer>
   );
 }

@@ -2486,3 +2486,288 @@ a:focus-visible > .cta-attention::after {
   line-height: 1.4;
   color: rgba(255, 255, 255, 0.84);
 }
+
+/* ========================================
+   Promo videos ("Watch the Trail"), straight after the hero. Pinned dark in
+   the markup like the hero, so the two read as one opening. The large
+   player is a thumbnail and a play button until pressed; YouTube's own
+   player loads only then.
+   ======================================== */
+.promo-section {
+  padding-top: var(--spacing-lg);
+  background:
+    radial-gradient(60% 45% at 50% 100%, rgba(var(--color-primary-rgb), 0.14), transparent 72%),
+    var(--color-bg-base);
+}
+
+.promo-head {
+  margin-bottom: 36px;
+}
+
+.promo-head h2 {
+  font-size: 2.5rem;
+}
+
+.promo-head p {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.promo-stage-wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  /* Clear of the fixed navbar when a thumbnail scrolls the player back into view. */
+  scroll-margin-top: calc(var(--navbar-height) + 16px);
+  scroll-margin-bottom: 16px;
+}
+
+.promo-stage {
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(var(--color-fg-rgb), 0.12);
+  background: #000;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.promo-stage.is-landscape {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+/* A vertical video as tall as the screen allows, and never wider than a phone. */
+.promo-stage.is-portrait {
+  aspect-ratio: 9 / 16;
+  width: min(100%, 400px, calc((100vh - var(--navbar-height) - 120px) * 9 / 16));
+  width: min(100%, 400px, calc((100svh - var(--navbar-height) - 120px) * 9 / 16));
+}
+
+.promo-stage-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.promo-facade {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+  cursor: pointer;
+}
+
+/* Inside the stage, which clips: an outside ring would be cut off. */
+.promo-facade:focus-visible {
+  outline-offset: -4px;
+}
+
+.promo-facade-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+/* A light vignette, so the button reads on any frame. */
+.promo-facade::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.promo-play {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 0 0 10px rgba(var(--color-primary-rgb), 0.25), 0 12px 30px rgba(0, 0, 0, 0.45);
+  transition: transform var(--transition-bounce), box-shadow var(--transition-normal);
+}
+
+/* The triangle's visual centre sits right of its box's centre. */
+.promo-play svg {
+  margin-left: 4px;
+}
+
+.promo-facade:hover .promo-play,
+.promo-facade:focus-visible .promo-play {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 14px rgba(var(--color-primary-rgb), 0.3), 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+.promo-facade:hover .promo-facade-img {
+  transform: scale(1.03);
+}
+
+.promo-now {
+  margin-top: 18px;
+  text-align: center;
+}
+
+.promo-now-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.promo-now-caption {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}
+
+/* Other videos: a row that is centred while it fits and scrolls sideways
+   when it does not. The padding keeps the focus ring inside the scroller,
+   which would otherwise clip it. */
+.promo-rail {
+  list-style: none;
+  display: flex;
+  gap: 14px;
+  max-width: 960px;
+  margin: 24px auto 0;
+  padding: 6px 6px 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+/* Auto margins centre the row without cutting off its start when it scrolls,
+   which justify-content: center would. */
+.promo-rail > li:first-child { margin-left: auto; }
+.promo-rail > li:last-child { margin-right: auto; }
+
+.promo-rail > li {
+  flex: 0 0 auto;
+  width: 200px;
+  scroll-snap-align: start;
+}
+
+.promo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.promo-card-thumb {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(var(--color-fg-rgb), 0.12);
+  background: #000;
+  transition: border-color var(--transition-fast);
+}
+
+.promo-card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.75;
+  transition: opacity var(--transition-fast);
+}
+
+/* A vertical video: its middle at 9:16 on black, the way YouTube shows one
+   in a wide frame. Also drops the black side bars YouTube puts in the
+   thumbnail of a vertical video. */
+.promo-card-thumb.is-portrait .promo-card-img {
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  width: auto;
+  aspect-ratio: 9 / 16;
+  transform: translateX(-50%);
+}
+
+.promo-card-play {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #FFFFFF;
+}
+
+.promo-card-play svg {
+  margin-left: 2px;
+}
+
+.promo-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.promo-card:hover .promo-card-img,
+.promo-card.is-active .promo-card-img {
+  opacity: 1;
+}
+
+.promo-card:hover .promo-card-title,
+.promo-card.is-active .promo-card-title {
+  color: var(--color-text-main);
+}
+
+.promo-card.is-active .promo-card-thumb {
+  border-color: var(--color-primary);
+}
+
+.promo-card.is-active .promo-card-play {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+@media (max-width: 767px) {
+  .promo-head { margin-bottom: 28px; }
+  .promo-head h2 { font-size: 2rem; }
+  .promo-play { width: 64px; height: 64px; }
+  .promo-now-title { font-size: 1.35rem; }
+  /* Edge to edge, with the next card peeking in, so the row reads as one that scrolls. */
+  .promo-rail {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+    scroll-padding-inline: 1rem;
+  }
+  .promo-rail > li { width: 40vw; max-width: 200px; }
+}

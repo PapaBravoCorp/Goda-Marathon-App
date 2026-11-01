@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Save } from 'lucide-react';
+import ModalLayer from './ModalLayer';
 import { describeSaveError } from '../../utils/services/errors';
 import { bibNumber, formatBibSeries } from '../../utils/bibSeries';
 
@@ -55,25 +56,25 @@ export default function EditRegistrationModal({ registration, categories, onSave
   }
 
   return (
-    <div className="admin-modal-overlay" onClick={onClose}>
-      <div className="admin-modal glass" onClick={e => e.stopPropagation()}>
+    <ModalLayer onClose={onClose}>
+      <div className="admin-modal glass" role="dialog" aria-modal="true" aria-labelledby="edit-reg-title">
         <div className="admin-modal-header">
-          <h3>Edit Registration</h3>
-          <button className="admin-modal-close" onClick={onClose}><X size={20} /></button>
+          <h3 id="edit-reg-title">Edit Registration</h3>
+          <button type="button" className="admin-modal-close" onClick={onClose} aria-label="Close"><X size={20} aria-hidden="true" /></button>
         </div>
         <form onSubmit={handleSubmit} className="admin-modal-body">
           <div className="admin-media-form-grid">
             <div className="admin-media-form-group">
-              <label>First Name</label>
-              <input name="first_name" value={formData.first_name} onChange={handleInput} />
+              <label htmlFor="edit-reg-first_name">First Name</label>
+              <input id="edit-reg-first_name" name="first_name" value={formData.first_name} onChange={handleInput} />
             </div>
             <div className="admin-media-form-group">
-              <label>Last Name</label>
-              <input name="last_name" value={formData.last_name} onChange={handleInput} />
+              <label htmlFor="edit-reg-last_name">Last Name</label>
+              <input id="edit-reg-last_name" name="last_name" value={formData.last_name} onChange={handleInput} />
             </div>
             <div className="admin-media-form-group">
-              <label>Email</label>
-              <input name="email" type="email" value={formData.email} onChange={handleInput} />
+              <label htmlFor="edit-reg-email">Email</label>
+              <input id="edit-reg-email" name="email" type="email" value={formData.email} onChange={handleInput} />
             </div>
             <div className="admin-media-form-group">
               <label htmlFor="edit-reg-bib">Bib Number</label>
@@ -94,8 +95,8 @@ export default function EditRegistrationModal({ registration, categories, onSave
               )}
             </div>
             <div className="admin-media-form-group">
-              <label>Category</label>
-              <select name="category" value={formData.category} onChange={handleInput}>
+              <label htmlFor="edit-reg-category">Category</label>
+              <select id="edit-reg-category" name="category" value={formData.category} onChange={handleInput}>
                 <option value="">Select...</option>
                 {categories.map((cat, i) => {
                   const name = typeof cat === 'string' ? cat : cat.name;
@@ -109,15 +110,15 @@ export default function EditRegistrationModal({ registration, categories, onSave
               </select>
             </div>
             <div className="admin-media-form-group">
-              <label>T-Shirt Size</label>
-              <select name="tshirt_size" value={formData.tshirt_size} onChange={handleInput}>
+              <label htmlFor="edit-reg-tshirt_size">T-Shirt Size</label>
+              <select id="edit-reg-tshirt_size" name="tshirt_size" value={formData.tshirt_size} onChange={handleInput}>
                 <option value="">Select...</option>
                 {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div className="admin-media-form-group">
-              <label>Payment Status</label>
-              <select name="payment_status" value={formData.payment_status} onChange={handleInput}>
+              <label htmlFor="edit-reg-payment_status">Payment Status</label>
+              <select id="edit-reg-payment_status" name="payment_status" value={formData.payment_status} onChange={handleInput}>
                 <option value="PENDING">Pending</option>
                 <option value="PAID">Paid</option>
                 <option value="REFUNDED">Refunded</option>
@@ -138,6 +139,6 @@ export default function EditRegistrationModal({ registration, categories, onSave
           </div>
         </form>
       </div>
-    </div>
+    </ModalLayer>
   );
 }

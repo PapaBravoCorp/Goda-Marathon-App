@@ -1,47 +1,60 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
+import ModalLayer from './ModalLayer';
 
-/** Modal shell shared by the Content tab's editors (FAQ, testimonials, sponsors). */
+/**
+ * Modal form shared by the admin editors (FAQs, testimonials, sponsors,
+ * homepage blocks, guests, promo videos). ModalLayer puts it above the whole
+ * page and handles focus, Escape and the inert background.
+ */
 export default function ContentModal({ title, error, isSaving, onSubmit, onClose, children }) {
-  // Mount-only: focus and scroll lock must not re-run on every keystroke.
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prevOverflow; };
-  }, []);
+  const titleId = useId();
+  const errorRef = useRef(null);
 
+  // The error sits at the foot of a body that scrolls; bring it into view.
+  // role="alert" also has it read out.
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    if (error) errorRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [error]);
+
+  // aria-disabled rather than disabled while saving: a disabled button drops
+  // keyboard focus to the page, and a second press is ignored here anyway.
+  const submit = (e) => {
+    if (isSaving) { e.preventDefault(); return; }
+    onSubmit(e);
+  };
 
   return (
-    <div className="admin-modal-overlay" onClick={onClose}>
+    <ModalLayer onClose={onClose}>
       <div
         className="admin-modal admin-modal--wide glass"
-        onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby={titleId}
       >
         <div className="admin-modal-header">
-          <h3>{title}</h3>
-          <button className="admin-modal-close" onClick={onClose} aria-label="Close"><X size={20} /></button>
+          <h3 id={titleId}>{title}</h3>
+          <button type="button" className="admin-modal-close" onClick={onClose} aria-label="Close">
+            <X size={20} aria-hidden="true" />
+          </button>
         </div>
-        <form onSubmit={onSubmit} className="admin-modal-form">
+        <form onSubmit={submit} className="admin-modal-form">
           <div className="admin-modal-body">
             <section className="admin-form-section">{children}</section>
-            {error && <div className="admin-login-error" style={{ marginTop: '1rem' }}><span>{error}</span></div>}
+            {error && (
+              <div ref={errorRef} className="admin-login-error" role="alert" style={{ marginTop: '1rem' }}>
+                <span>{error}</span>
+              </div>
+            )}
           </div>
           <div className="admin-modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            <button type="submit" className="btn btn-primary" aria-disabled={isSaving || undefined}>
               {isSaving ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </ModalLayer>
   );
 }

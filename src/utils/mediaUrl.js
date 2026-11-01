@@ -33,12 +33,42 @@ export function isDriveFolderUrl(url) {
   return !!url && DRIVE_FOLDER_PATTERN.test(url);
 }
 
+/**
+ * The 11-character video id from any common YouTube link: watch?v= (with
+ * other parameters before it too, as the share sheet adds), youtu.be/,
+ * /shorts/, /live/, /embed/ and the youtube-nocookie.com player.
+ */
 export function getYouTubeId(url) {
   if (!url) return null;
   const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?![a-zA-Z0-9_-])/
   );
   return match ? match[1] : null;
+}
+
+/** A /shorts/ link is a vertical video. Any other link says nothing either way. */
+export function isYouTubeShortUrl(url) {
+  return /youtube\.com\/shorts\//i.test(url || '');
+}
+
+/**
+ * A YouTube thumbnail. maxresdefault (1280 x 720) exists only for videos
+ * uploaded in HD; for the rest YouTube answers with a 120 x 90 grey
+ * placeholder, so callers check the loaded width and fall back to
+ * hqdefault (480 x 360), which every video has.
+ */
+export function youTubeThumbnail(id, quality = 'hqdefault') {
+  return `https://i.ytimg.com/vi/${id}/${quality}.jpg`;
+}
+
+/**
+ * The privacy-enhanced player, which sets no cookies until the video is
+ * played. Only ever built from a validated id, never from a pasted URL.
+ */
+export function youTubeEmbedUrl(id, { autoplay = false } = {}) {
+  const params = new URLSearchParams({ rel: '0', playsinline: '1' });
+  if (autoplay) params.set('autoplay', '1');
+  return `https://www.youtube-nocookie.com/embed/${id}?${params}`;
 }
 
 /**

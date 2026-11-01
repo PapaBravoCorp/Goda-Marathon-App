@@ -14,6 +14,8 @@ export const DEFAULT_FOOTER_ABOUT =
   `Bringing people together through the power of sport. Organised by ${ORGANISATION.name} and ${ORGANISATION.coOrganiser}.`;
 export const DEFAULT_GUESTS_HEADING = 'Guests of Honour';
 export const DEFAULT_GUESTS_INTRO = 'Champions and well-known faces who have joined us at the start line.';
+export const DEFAULT_VIDEOS_HEADING = 'Watch the Trail';
+export const DEFAULT_VIDEOS_INTRO = 'The course, the climbs and the crowd, before race day.';
 
 export const MAX_FOOTER_CONTACTS = 6;
 
@@ -148,5 +150,8 @@ export function resolveSiteBranding(row) {
 
     guestsHeading: text(s.guests_heading) || DEFAULT_GUESTS_HEADING,
     guestsIntro: text(s.guests_intro) || DEFAULT_GUESTS_INTRO,
+
+    videosHeading: text(s.videos_heading) || DEFAULT_VIDEOS_HEADING,
+    videosIntro: text(s.videos_intro) || DEFAULT_VIDEOS_INTRO,
   };
 }

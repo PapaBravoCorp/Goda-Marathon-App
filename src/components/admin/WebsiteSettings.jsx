@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import LogoField from './LogoField';
 import GuestManager from './GuestManager';
+import PromoVideoManager from './PromoVideoManager';
 import { getSiteSettings, updateSiteSettings } from '../../utils/services/siteSettings';
 import { getCurrentEvent } from '../../utils/services/events';
 import { getEventCategories } from '../../utils/services/categories';
@@ -14,6 +15,7 @@ import { ORGANISATION } from '../../utils/constants';
 import {
   LOGO_PLATES, HERO_LOGO_PLACEMENTS, CTA_EFFECTS, DISTANCE_MODES, MAX_FOOTER_CONTACTS,
   DEFAULT_BRAND_NAME, DEFAULT_FOOTER_ABOUT, DEFAULT_GUESTS_HEADING, DEFAULT_GUESTS_INTRO,
+  DEFAULT_VIDEOS_HEADING, DEFAULT_VIDEOS_INTRO,
   cleanFooterContacts,
 } from '../../utils/siteBranding';
 
@@ -47,6 +49,8 @@ function toForm(row) {
     })),
     guests_heading: row.guests_heading || '',
     guests_intro: row.guests_intro || '',
+    videos_heading: row.videos_heading || '',
+    videos_intro: row.videos_intro || '',
   };
 }
 
@@ -57,10 +61,11 @@ const orNull = (value) => String(value ?? '').trim() || null;
  * change -- the logo, the homepage hero, the Event Details heading and the
  * footer -- plus the homepage's Guests of Honour.
  *
- * Everything except the guests is one site_settings row (0020), saved with
- * Save Changes. An empty field means "keep the site's default", so details
- * still being collected can be left blank and plugged in later. Guests are
- * rows of their own and save from their own form.
+ * Everything except the guests and promo videos is one site_settings row
+ * (0020, 0021), saved with Save Changes. An empty field means "keep the
+ * site's default", so details still being collected can be left blank and
+ * plugged in later. Guests and videos are rows of their own and save from
+ * their own forms.
  */
 export default function WebsiteSettings() {
   const [status, setStatus] = useState('loading'); // loading | ready | needs-migration | error
@@ -149,6 +154,8 @@ export default function WebsiteSettings() {
   };
 
   const isProcessing = processing.brand || processing.hero;
+  // The videos band's heading arrives with 0021, which may run after 0020.
+  const hasVideoSettings = 'videos_heading' in row;
   const isDirty = !!pendingBrand || !!pendingHero || JSON.stringify(form) !== JSON.stringify(toForm(row));
 
   const handleSave = async () => {
@@ -193,6 +200,10 @@ export default function WebsiteSettings() {
         footer_contacts: cleaned.contacts,
         guests_heading: orNull(form.guests_heading),
         guests_intro: orNull(form.guests_intro),
+        ...(hasVideoSettings ? {
+          videos_heading: orNull(form.videos_heading),
+          videos_intro: orNull(form.videos_intro),
+        } : {}),
       });
       saved = true;
 
@@ -504,6 +515,34 @@ export default function WebsiteSettings() {
             Shown as &ldquo;&copy; {new Date().getFullYear()} {form.footer_copyright.trim() || ORGANISATION.legalName}.
             All rights reserved.&rdquo; The policy pages keep the registered name, {ORGANISATION.legalName}.
           </span>
+        </div>
+      </div>
+
+      {/* ── Promo videos ───────────────────────────────────────────────── */}
+      <div className="admin-event-form glass" style={{ marginTop: '1.5rem' }}>
+        <h4 className="admin-form-section-title">Homepage: Promo videos</h4>
+        <p className="admin-field-hint" style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>
+          YouTube videos in a &ldquo;Watch the Trail&rdquo; band straight under the hero. The first
+          visible one is shown large, with the rest as thumbnails to switch to. The band appears once
+          one video is visible. Upload the full-quality file to YouTube (Unlisted is fine) and paste
+          its link: YouTube plays it in HD or 4K to each visitor, which a direct upload here could
+          not. The heading and line save with Save Changes; each video saves from its own form.
+        </p>
+        {hasVideoSettings && (
+          <div className="admin-media-form-grid">
+            <div className="admin-media-form-group">
+              <label htmlFor="web-videos-heading">Heading</label>
+              <input id="web-videos-heading" name="videos_heading" value={form.videos_heading} onChange={onInput} placeholder={DEFAULT_VIDEOS_HEADING} maxLength={50} aria-describedby="web-videos-heading-hint" />
+              <span id="web-videos-heading-hint" className="admin-field-hint">The last word is highlighted in orange.</span>
+            </div>
+            <div className="admin-media-form-group">
+              <label htmlFor="web-videos-intro">Line under the heading</label>
+              <input id="web-videos-intro" name="videos_intro" value={form.videos_intro} onChange={onInput} placeholder={DEFAULT_VIDEOS_INTRO} maxLength={160} />
+            </div>
+          </div>
+        )}
+        <div style={{ marginTop: hasVideoSettings ? '1.25rem' : 0 }}>
+          <PromoVideoManager />
         </div>
       </div>
 
