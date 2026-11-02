@@ -100,6 +100,7 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0017_category_bib_series.sql` | A bib number series per category (21 km → 21001–21999), issued by the database; renumbers live entries of upcoming events |
 | `0019_category_course_maps.sql` | A GPX course map per category (`event_categories.route_gpx`); lets the media bucket accept GPX files |
 | `0020_website_settings.sql` | Admin → Website: header and hero logos, the Register Now effect, the hero's Distances box, the Event Details heading, footer contacts, about line and copyright name, and the homepage Guests of Honour (`featured_guests`) |
+| `0022_stats_viewers.sql` | View-only **stats viewer** logins: `stats_viewers`, `can_view_stats()`, `get_reg_stats()` (counts only). Changes nothing existing. Rollback: `supabase/rollbacks/0022_stats_viewers.down.sql` |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which
 missed allow-all policies that had been created outside these migrations. It
@@ -134,9 +135,87 @@ are admin-only, and the public writes them through a validating function.
 
 4. Sign in at `/admin`.
 
-While you are in Authentication settings, turn **off** public sign-ups
-(Providers → Email). Nothing here needs them, and leaving them on lets strangers
-create accounts on your project.
+While you are in Authentication settings, turn **off** public sign-ups:
+**Sign In / Providers → User Signups → Allow new users to sign up** (and keep
+**Allow anonymous sign-ins** off), then **Save changes**. Leave the Email
+provider itself enabled; admin and viewer logins use it. Nothing here needs
+public sign-ups (runners never use Supabase Auth), leaving them on lets strangers
+create accounts on your project, and **Add user** keeps working without them.
+
+### Stats viewers (view-only team logins)
+
+A stats viewer signs in at `/admin` and sees only the **Stats** page: entry
+counts by discount code, category, payment status and day, plus a CSV of those
+totals. They are not admins and get no access to any table, so they cannot see
+runners' names, contacts or payments. Needs migration 0022.
+
+Never add a viewer to `admin_users`: every row there is a full admin.
+
+**Add a viewer**
+
+1. Supabase dashboard → **Authentication → Users → Add user → Create new
+   user**. Their email, a strong password, tick **Auto Confirm User**. Give them
+   the password privately.
+2. In the SQL editor (by email, so there is no UUID to copy):
+
+   ```sql
+   insert into public.stats_viewers (user_id, name)
+   select id, 'Akash' from auth.users where email = 'akash@example.com'
+   returning user_id, name;
+   ```
+
+   One row back means done. No rows means no user has that email.
+3. They sign in at `/admin`.
+
+**Deactivate a viewer** (keeps the record of who had access)
+
+```sql
+update public.stats_viewers set active = false
+where user_id = (select id from auth.users where email = 'akash@example.com')
+returning user_id, name, active;
+```
+
+The stats stop at once: an open Stats page shows "no longer has access" at its
+next refresh (within a minute), and the login is signed out at the next reload.
+Set `active = true` the same way to restore access.
+
+**Remove a viewer completely**: delete the user under Authentication → Users.
+Their `stats_viewers` row goes with it.
+
+**Who has access**
+
+```sql
+select u.email, v.name, v.active, v.created_at
+from public.stats_viewers v
+join auth.users u on u.id = v.user_id
+order by v.created_at;
+```
+
+**Rolling back 0022**: run `supabase/rollbacks/0022_stats_viewers.down.sql` in
+the SQL editor. It drops the two functions and the table and nothing else;
+admins are unaffected, viewers can no longer sign in.
+
+### Database tests
+
+```bash
+bash supabase/tests/run-db-tests.sh
+```
+
+Runs on a throwaway local PostgreSQL and never touches Supabase. It applies
+`supabase/tests/bootstrap.sql` (stand-ins for Supabase's auth, storage and
+roles), then every migration in order, so the tests see the real `is_admin()`
+and the real policies. Then it runs each `*.test.sql`, checks 0022 can be
+re-run, and checks its rollback. Needs PostgreSQL 15+ (`initdb`, `pg_ctl`,
+`psql`); set `PG_BIN` to their folder if they are not on `PATH`.
+
+After applying 0022 and adding a viewer, check the live project with that
+viewer's login. It is read-only and sends nothing:
+
+```bash
+VIEWER_EMAIL=akash@example.com VIEWER_PASSWORD='...' node supabase/tests/stats-viewer-live-check.mjs
+```
+
+In PowerShell: `$env:VIEWER_EMAIL='...'; $env:VIEWER_PASSWORD='...'; node supabase/tests/stats-viewer-live-check.mjs`
 
 ---
 
@@ -436,6 +515,8 @@ src/
   utils/services/     Every Supabase call lives here, nowhere else
 supabase/
   migrations/         Numbered SQL, applied in order
+  rollbacks/          Undo scripts, run by hand (kept out of migrations/)
+  tests/              Database tests (run-db-tests.sh) and live checks
   functions/          Edge functions
 ```
 

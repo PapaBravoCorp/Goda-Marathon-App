@@ -3048,3 +3048,147 @@
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
+
+/* ========================================
+   Stats (Admin → Stats, and the whole dashboard for a stats viewer)
+   ======================================== */
+.admin-stats-panel .admin-stats-grid {
+  margin-bottom: 1.25rem;
+}
+
+.admin-stats-updated {
+  align-self: center;
+  font-size: 0.85rem;
+}
+
+.admin-stats-columns {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Grid items default to min-width: auto, so a wide table would stretch its
+   card past the screen edge instead of scrolling inside it. */
+.admin-stats-columns > * {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .admin-stats-columns {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.admin-stats-section-head {
+  margin-bottom: 0.75rem;
+}
+
+.admin-stats-section-head h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.admin-stats-section-head p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+}
+
+.admin-stats-table th,
+.admin-stats-table td {
+  padding: 10px 8px;
+}
+
+/* Row labels are <th scope="row"> for screen readers; they should still read
+   as body text, not as the uppercase column headings .admin-table th gives. */
+.admin-stats-table tbody th {
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: inherit;
+  color: var(--color-text-main);
+}
+
+.admin-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-stats-strong {
+  font-weight: 700;
+}
+
+/* Entries per day: a thin bar on a shared scale, with the count printed beside
+   it, so the bar is never the only way to read the number. */
+.admin-stats-bar-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+}
+
+.admin-stats-bar-track {
+  display: block;
+  flex: 1;
+  max-width: 220px;
+  height: 8px;
+}
+
+.admin-stats-bar {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  background: var(--color-primary);
+  border-radius: 0 4px 4px 0;
+}
+
+/* The dashboard-wide `word-break: break-word` on table cells (for long email
+   addresses) lets a column shrink to one letter on a phone. These tables hold
+   short labels and numbers: wrap only between words, and let the table scroll
+   sideways inside its card if it still does not fit. */
+.admin-page .admin-stats-table th,
+.admin-page .admin-stats-table td {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.admin-stats-day {
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .admin-stats-section {
+    padding: 1rem 0.75rem;
+  }
+
+  .admin-stats-table th,
+  .admin-stats-table td {
+    padding: 8px 5px;
+  }
+
+  .admin-stats-table thead th {
+    font-size: 0.66rem;
+    letter-spacing: 0;
+  }
+
+  .admin-stats-bar-cell {
+    min-width: 96px;
+    gap: 6px;
+  }
+
+  /* Two buttons fit with their words, and a team member who only ever sees
+     this page should not have to guess what a bare download icon does. */
+  .admin-stats-panel .admin-action-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: nowrap;
+  }
+
+  .admin-stats-panel .admin-action-btn {
+    gap: 6px !important;
+  }
+}

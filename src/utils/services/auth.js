@@ -67,6 +67,33 @@ export async function isAdmin() {
 }
 
 /**
+ * What the signed-in user may open at /admin:
+ *   'admin'  -- the full dashboard (on the admin_users allow-list)
+ *   'viewer' -- the Stats page only (an active row in stats_viewers, 0022)
+ *   null     -- nothing; the caller signs them out
+ *
+ * Asked of the database every time, so deactivating a viewer takes effect at
+ * their next check (sign-in, reload, or the hourly token refresh), and the
+ * stats function refuses them immediately in any case. Errors count as no
+ * access.
+ */
+export async function getDashboardRole() {
+  if (await isAdmin()) return 'admin';
+
+  const { data, error } = await supabase.rpc('can_view_stats');
+  if (error) {
+    if (error.code === 'PGRST202' || /Could not find the function/i.test(error.message || '')) {
+      // Migration 0022 not applied yet: admins are unaffected, viewers can't sign in.
+      console.error('public.can_view_stats() is missing. Apply supabase/migrations/0022_stats_viewers.sql.');
+    } else {
+      console.error('Stats access check failed', error);
+    }
+    return null;
+  }
+  return data === true ? 'viewer' : null;
+}
+
+/**
  * Subscribe to sign-in/sign-out, including in another tab.
  * Returns an unsubscribe function.
  */

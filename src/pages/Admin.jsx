@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Lock, LogOut, Eye, EyeOff, ShieldCheck, Users, LayoutGrid,
   CalendarClock, Image, Settings, Mail, MessageSquare, Mailbox, AlertTriangle,
-  UsersRound, Tag, Globe,
+  UsersRound, Tag, Globe, BarChart3,
 } from 'lucide-react';
 import { CURRENT_EVENT } from '../utils/constants';
 import { getCurrentEvent } from '../utils/services/events';
-import { signIn, signOut, getSession, isAdmin, onAuthChange, describeAuthError } from '../utils/services/auth';
+import { signIn, signOut, getSession, getDashboardRole, onAuthChange, describeAuthError } from '../utils/services/auth';
 
 import RegistrationManager from '../components/admin/RegistrationManager';
+import StatsPanel from '../components/admin/StatsPanel';
 import GroupManager from '../components/admin/GroupManager';
 import CouponManager from '../components/admin/CouponManager';
 import CategoryManager from '../components/admin/CategoryManager';
@@ -46,15 +47,17 @@ function AdminLogin({ onSignedIn }) {
     try {
       await signIn(email, password);
 
-      // A valid account is not automatically an administrator. Ask the
-      // database, and refuse the session rather than showing a dashboard whose
-      // every panel would come back empty.
-      if (!(await isAdmin())) {
+      // A valid account is not automatically allowed in. Ask the database
+      // whether it is an admin or a stats viewer, and refuse the session
+      // otherwise rather than showing a dashboard whose every panel would
+      // come back empty.
+      const role = await getDashboardRole();
+      if (!role) {
         await signOut();
-        fail('This account does not have administrator access.');
+        fail('This account does not have access to the dashboard.');
         return;
       }
-      onSignedIn();
+      onSignedIn(role);
     } catch (err) {
       fail(describeAuthError(err));
     } finally {
@@ -69,7 +72,7 @@ function AdminLogin({ onSignedIn }) {
           <ShieldCheck size={48} />
         </div>
         <h2 className="admin-login-title">Admin Access</h2>
-        <p className="admin-login-subtitle">Sign in with your organiser account.</p>
+        <p className="admin-login-subtitle">Sign in with your organiser or team account.</p>
 
         <form onSubmit={handleSubmit} className="admin-login-form">
           <div className="admin-password-field">
@@ -125,6 +128,7 @@ function AdminLogin({ onSignedIn }) {
 
 const TABS = [
   { id: 'registrations', label: 'Registrations', icon: Users },
+  { id: 'stats', label: 'Stats', icon: BarChart3 },
   { id: 'groups', label: 'Groups', icon: UsersRound },
   { id: 'coupons', label: 'Coupons', icon: Tag },
   { id: 'categories', label: 'Categories', icon: LayoutGrid },
@@ -137,8 +141,18 @@ const TABS = [
   { id: 'subscribers', label: 'Subscribers', icon: Mailbox },
 ];
 
+function SignOutButton({ onClick }) {
+  return (
+    <button className="btn btn-outline admin-action-btn admin-logout-btn" onClick={onClick}>
+      <LogOut size={18} />
+      <span className="admin-action-label">Sign out</span>
+    </button>
+  );
+}
+
 export default function Admin() {
-  const [authState, setAuthState] = useState('checking'); // checking | out | in
+  // checking | out | admin | viewer. A viewer gets the Stats page and nothing else.
+  const [authState, setAuthState] = useState('checking');
   const [activeTab, setActiveTab] = useState('registrations');
   const [eventData, setEventData] = useState(null);
 
@@ -146,7 +160,12 @@ export default function Admin() {
     try {
       const session = await getSession();
       if (!session) { setAuthState('out'); return; }
-      setAuthState((await isAdmin()) ? 'in' : 'out');
+      const role = await getDashboardRole();
+      if (role) { setAuthState(role); return; }
+      // Signed in but neither admin nor viewer (or since deactivated): end the
+      // session rather than leave a useless login sitting in the browser.
+      await signOut().catch(() => {});
+      setAuthState('out');
     } catch {
       setAuthState('out');
     }
@@ -162,12 +181,14 @@ export default function Admin() {
     });
   }, [refreshAuth]);
 
+  const isSignedIn = authState === 'admin' || authState === 'viewer';
+
   useEffect(() => {
-    if (authState !== 'in') return;
+    if (!isSignedIn) return;
     let cancelled = false;
     getCurrentEvent().then(ev => { if (!cancelled) setEventData(ev); });
     return () => { cancelled = true; };
-  }, [authState]);
+  }, [isSignedIn]);
 
   const handleLogout = async () => {
     await signOut();
@@ -187,7 +208,7 @@ export default function Admin() {
     return (
       <>
         <Seo title="Admin Sign In" noIndex />
-        <AdminLogin onSignedIn={() => setAuthState('in')} />
+        <AdminLogin onSignedIn={(role) => setAuthState(role)} />
       </>
     );
   }
@@ -195,6 +216,24 @@ export default function Admin() {
   // events.id doubles as the slug on this project ("goda-2026"), and
   // registrations.event_id stores that same text.
   const eventId = eventData?.id || CURRENT_EVENT.slug;
+
+  if (authState === 'viewer') {
+    return (
+      <div className="admin-page">
+        <Seo title="Registration Stats" noIndex />
+        <div className="container admin-container">
+          <div className="admin-header">
+            <div className="admin-header-info">
+              <h2>Registration <span className="text-primary">Stats</span></h2>
+              <p className="text-muted">{eventData?.name || CURRENT_EVENT.name}</p>
+            </div>
+            <SignOutButton onClick={handleLogout} />
+          </div>
+          <StatsPanel eventId={eventId} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">
@@ -205,10 +244,7 @@ export default function Admin() {
             <h2>Admin <span className="text-primary">Dashboard</span></h2>
             <p className="text-muted">{eventData?.name || CURRENT_EVENT.name}</p>
           </div>
-          <button className="btn btn-outline admin-action-btn admin-logout-btn" onClick={handleLogout}>
-            <LogOut size={18} />
-            <span className="admin-action-label">Sign out</span>
-          </button>
+          <SignOutButton onClick={handleLogout} />
         </div>
 
         <div className="admin-tabs" role="tablist">
@@ -229,6 +265,7 @@ export default function Admin() {
         {activeTab === 'registrations' && (
           <RegistrationManager eventSlug={eventId} eventUuid={eventId} />
         )}
+        {activeTab === 'stats' && <StatsPanel eventId={eventId} />}
         {activeTab === 'groups' && <GroupManager eventSlug={eventId} />}
         {activeTab === 'coupons' && <CouponManager eventId={eventId} />}
         {activeTab === 'categories' && <CategoryManager eventId={eventId} eventSlug={eventId} />}
