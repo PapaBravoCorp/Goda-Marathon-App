@@ -6,8 +6,10 @@
 # Creates a temporary cluster, applies bootstrap.sql (stand-ins for Supabase's
 # auth/storage/roles), then EVERY migration in supabase/migrations in order --
 # the real files, so the tests run against the real is_admin() and the real
-# policies -- then each *.test.sql here. Also checks that 0022 can be re-run,
-# and that its rollback script removes it cleanly and it can be re-applied.
+# policies -- then each *.test.sql here. Every migration that ships a rollback
+# script (supabase/rollbacks/NNNN_name.down.sql) is also checked: it can be
+# re-run, the rollbacks run newest first remove everything they should, and the
+# migrations re-apply afterwards.
 #
 # Needs PostgreSQL 15+ server binaries (initdb, pg_ctl, psql). Set PG_BIN to
 # their folder if they are not on PATH. PGTEST_PORT picks the port (54329).
@@ -17,6 +19,11 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 PORT="${PGTEST_PORT:-54329}"
+
+# Everything the reversible migrations create; all of it must be gone after
+# their rollbacks run. Add to these lists when a new rollback script is added.
+ADDED_TABLES="'stats_viewers'"
+ADDED_FUNCTIONS="'can_view_stats', 'get_reg_stats', 'list_registrations_basic', 'mask_phone', 'mask_email'"
 
 if [ -z "${PG_BIN:-}" ]; then
   if command -v pg_ctl >/dev/null 2>&1; then
@@ -57,6 +64,11 @@ run_sql() {
     -f "$1" >"$LOG" 2>&1
 }
 
+query() {
+  # $1 = SQL. Prints the bare result, without the CR that psql adds on Windows.
+  "$PG_BIN/psql" -X -A -t -h localhost -p "$PORT" -U postgres -d postgres -c "$1" | tr -d '\r'
+}
+
 echo "Starting a throwaway PostgreSQL on port $PORT"
 "$PG_BIN/initdb" -D "$DATA" -U postgres -A trust -E UTF8 --no-locale >"$LOG" 2>&1 \
   || fail "initdb"
@@ -70,17 +82,27 @@ done
 
 run_sql "$HERE/bootstrap.sql" || fail "bootstrap.sql"
 
+checks=0
+ok() { echo "ok - $1"; checks=$((checks + 1)); }
+
 count=0
 for f in "$ROOT"/supabase/migrations/*.sql; do
   run_sql "$f" || fail "migration $(basename "$f")"
   count=$((count + 1))
 done
-echo "ok - applied $count migrations"
+ok "applied $count migrations"
 
-run_sql "$ROOT/supabase/migrations/0022_stats_viewers.sql" || fail "re-running 0022"
-echo "ok - 0022 can be re-run"
+# Migrations that ship a rollback script, oldest first.
+reversible=()
+for d in "$ROOT"/supabase/rollbacks/*.down.sql; do
+  [ -e "$d" ] && reversible+=("$(basename "$d" .down.sql)")
+done
 
-passed=0
+for m in "${reversible[@]}"; do
+  run_sql "$ROOT/supabase/migrations/$m.sql" || fail "re-running $m"
+  ok "$m can be re-run"
+done
+
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"
   PGOPTIONS="-c client_min_messages=notice" \
@@ -89,21 +111,31 @@ for t in "$HERE"/*.test.sql; do
   status=$?
   grep -o "ok - .*" "$LOG"
   [ $status -eq 0 ] || fail "$(basename "$t")"
-  passed=$((passed + $(grep -c "ok - " "$LOG")))
+  checks=$((checks + $(grep -c "ok - " "$LOG")))
 done
 
-run_sql "$ROOT/supabase/rollbacks/0022_stats_viewers.down.sql" || fail "rollback 0022"
-left=$("$PG_BIN/psql" -X -A -t -h localhost -p "$PORT" -U postgres -d postgres -c \
-  "select count(*) from pg_class where oid = to_regclass('public.stats_viewers')
-   union all select count(*) from pg_proc where proname in ('can_view_stats', 'get_reg_stats')" \
-  | tr -d '\r' | awk '{ s += $1 } END { print s + 0 }')
-[ "$left" = "0" ] || fail "rollback left $left object(s) behind"
-echo "ok - rollback removes the table and both functions"
-admins=$("$PG_BIN/psql" -X -A -t -h localhost -p "$PORT" -U postgres -d postgres -c \
-  "select count(*) from pg_proc where proname = 'is_admin'" | tr -d '\r')
-[ "$admins" = "1" ] || fail "rollback removed is_admin()"
-echo "ok - rollback leaves is_admin() in place"
-run_sql "$ROOT/supabase/migrations/0022_stats_viewers.sql" || fail "re-applying 0022 after rollback"
-echo "ok - 0022 re-applies after rollback"
+# Roll back newest first, the order a person would follow.
+for (( i = ${#reversible[@]} - 1; i >= 0; i-- )); do
+  m="${reversible[$i]}"
+  run_sql "$ROOT/supabase/rollbacks/$m.down.sql" || fail "rollback $m"
+  ok "$m rolls back"
+done
 
-echo "All database tests passed ($((passed + 5)) checks)."
+left=$(query "
+  select (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+           where n.nspname = 'public' and c.relname in ($ADDED_TABLES))
+       + (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.proname in ($ADDED_FUNCTIONS))")
+[ "$left" = "0" ] || fail "rollbacks left $left object(s) behind"
+ok "rollbacks remove every table and function they added"
+
+[ "$(query "select count(*) from pg_proc where proname = 'is_admin'")" = "1" ] \
+  || fail "a rollback removed is_admin()"
+ok "rollbacks leave is_admin() in place"
+
+for m in "${reversible[@]}"; do
+  run_sql "$ROOT/supabase/migrations/$m.sql" || fail "re-applying $m after rollback"
+  ok "$m re-applies after rollback"
+done
+
+echo "All database tests passed ($checks checks)."

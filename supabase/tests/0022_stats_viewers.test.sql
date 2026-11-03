@@ -10,52 +10,7 @@
 
 -- ── Fixtures (as the migration owner) ───────────────────────────────────────
 
-create schema if not exists test;
-
-create or replace function test.ok(passed boolean, label text)
-returns void
-language plpgsql
-as $$
-begin
-  if passed is distinct from true then
-    raise exception 'FAIL - %', label;
-  end if;
-  raise notice 'ok - %', label;
-end $$;
-
--- Becomes a caller for the rest of the current transaction.
-create or replace function test.act_as(p_user uuid)
-returns void
-language sql
-as $$
-  select set_config(
-    'request.jwt.claims',
-    case when p_user is null then '{"role":"anon"}'
-         else json_build_object('sub', p_user, 'role', 'authenticated')::text end,
-    true
-  );
-$$;
-
-grant usage on schema test to anon, authenticated;
-grant execute on all functions in schema test to anon, authenticated;
-
--- People
---   …0a admin           in admin_users
---   …0b viewer          active stats viewer
---   …0c former viewer   stats viewer with active = false
---   …0d stranger        a confirmed Supabase account with no role at all
-insert into auth.users (id, email) values
-  ('00000000-0000-0000-0000-00000000000a', 'admin@test.local'),
-  ('00000000-0000-0000-0000-00000000000b', 'viewer@test.local'),
-  ('00000000-0000-0000-0000-00000000000c', 'former@test.local'),
-  ('00000000-0000-0000-0000-00000000000d', 'stranger@test.local');
-
-insert into public.admin_users (user_id, email, note)
-values ('00000000-0000-0000-0000-00000000000a', 'admin@test.local', 'test admin');
-
-insert into public.stats_viewers (user_id, name, active) values
-  ('00000000-0000-0000-0000-00000000000b', 'Viewer', true),
-  ('00000000-0000-0000-0000-00000000000c', 'Former viewer', false);
+\ir helpers.sql
 
 -- Data. Triggers are switched off while seeding so the fixtures are exactly
 -- what is written here (no bib numbering, no email queue).
@@ -257,8 +212,4 @@ begin
 end $$;
 rollback;
 
--- Leave the database as the migrations left it (the runner tests the rollback next).
-delete from public.stats_viewers;
-delete from public.admin_users;
-delete from auth.users;
-drop schema test cascade;
+\ir cleanup.sql

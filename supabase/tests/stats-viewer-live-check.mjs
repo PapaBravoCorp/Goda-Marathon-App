@@ -6,11 +6,17 @@
 // "Stats viewers"). It proves, through the real API and the real policies,
 // what run-db-tests.sh can only show on a local copy:
 //
-//   * a visitor who is not signed in cannot call get_reg_stats
+//   * a visitor who is not signed in cannot call get_reg_stats or
+//     list_registrations_basic
 //   * the viewer gets totals and nothing else
+//   * the viewer's runner list (0023) has only the agreed columns, and every
+//     phone and email in it is masked
 //   * the viewer reads no rows from registrations, registration_groups, coupons
 //   * is_admin() is false for the viewer
 //   * send-bulk-email refuses the viewer with 403
+//
+// Run it after 0023 is applied; before that the runner-list checks fail with
+// "Could not find the function".
 //
 // Read-only. The send-bulk-email call has no subject or body, so even if the
 // account were wrongly an admin the function would stop at validation (400)
@@ -75,6 +81,19 @@ console.log(`Event: ${eventId}`);
   const { data, error } = await anon.rpc('get_reg_stats', { p_event_id: eventId });
   check(Boolean(error) && !data, 'anon: get_reg_stats errors', error ? '' : 'it returned data');
 }
+{
+  const { data, error } = await anon.rpc('list_registrations_basic', { p_event_id: eventId });
+  check(Boolean(error) && !data, 'anon: list_registrations_basic errors', error ? '' : 'it returned data');
+}
+
+const RUNNER_COLUMNS = [
+  'name', 'category', 'entry_type', 'group_name', 'payment_status', 'amount_paid', 'coupon_code',
+  'razorpay_payment_id', 'registered_at', 'bib', 'tshirt_size', 'city', 'phone_masked', 'email_masked',
+];
+// '******3210' or '******' (number too short to show any of it).
+const MASKED_PHONE = /^\*{6}(\d{4})?$/;
+// At most 2 characters of the name, then ***, then the domain if there is one.
+const MASKED_EMAIL = /^[^@*]{0,2}\*{3}(@[^@]*)?$/;
 
 // ── Signed in as the viewer ─────────────────────────────────────────────────
 const viewer = createClient(url, anonKey, options);
@@ -102,6 +121,19 @@ if (signInError) {
     const total = ok ? data.breakdown.reduce((n, r) => n + r.count, 0) : 0;
     check(ok, `viewer: gets totals only (${total} entries across ${ok ? data.breakdown.length : 0} rows)`,
       error?.message || 'unexpected shape');
+  }
+
+  {
+    const { data, error } = await viewer.rpc('list_registrations_basic', { p_event_id: eventId });
+    const rows = Array.isArray(data) ? data : [];
+    check(!error && Array.isArray(data) && rows.every((r) => sameKeys(r, RUNNER_COLUMNS)),
+      `viewer: runner list has only the agreed columns (${rows.length} entries)`, error?.message || 'unexpected columns');
+    const badPhone = rows.filter((r) => r.phone_masked != null && !MASKED_PHONE.test(r.phone_masked));
+    check(!error && badPhone.length === 0, 'viewer: every phone in the runner list is masked to its last 4',
+      `${badPhone.length} row(s) not masked`);
+    const badEmail = rows.filter((r) => r.email_masked != null && !MASKED_EMAIL.test(r.email_masked));
+    check(!error && badEmail.length === 0, 'viewer: every email in the runner list is masked',
+      `${badEmail.length} row(s) not masked`);
   }
 
   for (const table of ['registrations', 'registration_groups', 'coupons']) {
