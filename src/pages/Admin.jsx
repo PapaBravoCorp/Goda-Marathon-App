@@ -10,6 +10,7 @@ import { signIn, signOut, getSession, getDashboardRole, onAuthChange, describeAu
 
 import RegistrationManager from '../components/admin/RegistrationManager';
 import StatsPanel from '../components/admin/StatsPanel';
+import RunnersPanel from '../components/admin/RunnersPanel';
 import GroupManager from '../components/admin/GroupManager';
 import CouponManager from '../components/admin/CouponManager';
 import CategoryManager from '../components/admin/CategoryManager';
@@ -141,6 +142,31 @@ const TABS = [
   { id: 'subscribers', label: 'Subscribers', icon: Mailbox },
 ];
 
+// A stats viewer's whole dashboard. Admins keep Registrations instead of Runners.
+const VIEWER_TABS = [
+  { id: 'stats', label: 'Stats', icon: BarChart3 },
+  { id: 'runners', label: 'Runners', icon: Users },
+];
+
+function TabBar({ tabs, active, onChange, labelled = false }) {
+  return (
+    <div className={`admin-tabs${labelled ? ' admin-tabs-labelled' : ''}`} role="tablist">
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          role="tab"
+          aria-selected={active === tab.id}
+          className={`admin-tab ${active === tab.id ? 'active' : ''}`}
+          onClick={() => onChange(tab.id)}
+        >
+          <tab.icon size={18} />
+          <span className="admin-tab-label">{tab.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function SignOutButton({ onClick }) {
   return (
     <button className="btn btn-outline admin-action-btn admin-logout-btn" onClick={onClick}>
@@ -151,9 +177,10 @@ function SignOutButton({ onClick }) {
 }
 
 export default function Admin() {
-  // checking | out | admin | viewer. A viewer gets the Stats page and nothing else.
+  // checking | out | admin | viewer. A viewer gets Stats and Runners, nothing else.
   const [authState, setAuthState] = useState('checking');
   const [activeTab, setActiveTab] = useState('registrations');
+  const [viewerTab, setViewerTab] = useState('stats');
   const [eventData, setEventData] = useState(null);
 
   const refreshAuth = useCallback(async () => {
@@ -220,16 +247,18 @@ export default function Admin() {
   if (authState === 'viewer') {
     return (
       <div className="admin-page">
-        <Seo title="Registration Stats" noIndex />
+        <Seo title="Team Dashboard" noIndex />
         <div className="container admin-container">
           <div className="admin-header">
             <div className="admin-header-info">
-              <h2>Registration <span className="text-primary">Stats</span></h2>
+              <h2>Team <span className="text-primary">Dashboard</span></h2>
               <p className="text-muted">{eventData?.name || CURRENT_EVENT.name}</p>
             </div>
             <SignOutButton onClick={handleLogout} />
           </div>
-          <StatsPanel eventId={eventId} />
+          <TabBar tabs={VIEWER_TABS} active={viewerTab} onChange={setViewerTab} labelled />
+          {viewerTab === 'stats' && <StatsPanel eventId={eventId} />}
+          {viewerTab === 'runners' && <RunnersPanel eventId={eventId} />}
         </div>
       </div>
     );
@@ -247,20 +276,7 @@ export default function Admin() {
           <SignOutButton onClick={handleLogout} />
         </div>
 
-        <div className="admin-tabs" role="tablist">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <tab.icon size={18} />
-              <span className="admin-tab-label">{tab.label}</span>
-            </button>
-          ))}
-        </div>
+        <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
 
         {activeTab === 'registrations' && (
           <RegistrationManager eventSlug={eventId} eventUuid={eventId} />

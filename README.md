@@ -101,6 +101,7 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0019_category_course_maps.sql` | A GPX course map per category (`event_categories.route_gpx`); lets the media bucket accept GPX files |
 | `0020_website_settings.sql` | Admin → Website: header and hero logos, the Register Now effect, the hero's Distances box, the Event Details heading, footer contacts, about line and copyright name, and the homepage Guests of Honour (`featured_guests`) |
 | `0022_stats_viewers.sql` | View-only **stats viewer** logins: `stats_viewers`, `can_view_stats()`, `get_reg_stats()` (counts only). Changes nothing existing. Rollback: `supabase/rollbacks/0022_stats_viewers.down.sql` |
+| `0023_runner_lookup.sql` | Read-only runner list for stats viewers: `list_registrations_basic()`, with phone and email masked in the database (`mask_phone()`, `mask_email()`). Changes nothing existing. Rollback: `supabase/rollbacks/0023_runner_lookup.down.sql` |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which
 missed allow-all policies that had been created outside these migrations. It
@@ -144,10 +145,30 @@ create accounts on your project, and **Add user** keeps working without them.
 
 ### Stats viewers (view-only team logins)
 
-A stats viewer signs in at `/admin` and sees only the **Stats** page: entry
-counts by discount code, category, payment status and day, plus a CSV of those
-totals. They are not admins and get no access to any table, so they cannot see
-runners' names, contacts or payments. Needs migration 0022.
+A stats viewer signs in at `/admin` and gets two read-only tabs (needs
+migrations 0022 and 0023):
+
+- **Stats**: entry counts by discount code, category, payment status and day,
+  plus a CSV of those totals.
+- **Runners**: one row per entry, every status, with name, category,
+  individual/group (and group name), payment status, amount paid, coupon code,
+  Razorpay payment ID, registered at, bib, T-shirt size and city. The phone
+  shows only its last 4 digits and the email only its first 2 characters plus
+  the domain; the database masks them, so the full values never reach the
+  browser. Date of birth, emergency contact, blood group and medical details are
+  never included. Searchable by name, phone last 4 and Razorpay ID; filterable
+  by category and payment status; CSV of exactly these columns. A status key
+  above the list says what PAID, PENDING, CANCELLED and REFUNDED mean.
+
+  **Amount paid** is what the runner was charged, after any coupon, and only
+  for PAID entries. It never follows the category's current price. A solo
+  entry paid through Razorpay shows the amount on its payment record, less any
+  partial refund. A group pays once, so each member shows their own share of
+  that payment; the shares add up to it. An entry an admin marked as paid
+  shows its own price after the coupon, as fixed when it was made.
+
+They are not admins, cannot change anything, and have no access to any table:
+both tabs come from database functions that check access themselves.
 
 Never add a viewer to `admin_users`: every row there is a full admin.
 
@@ -175,8 +196,9 @@ where user_id = (select id from auth.users where email = 'akash@example.com')
 returning user_id, name, active;
 ```
 
-The stats stop at once: an open Stats page shows "no longer has access" at its
-next refresh (within a minute), and the login is signed out at the next reload.
+Access stops at once: the database refuses their next request, so an open Stats
+page shows "no longer has access" within a minute and the Runners tab on its
+next Refresh, and the login is signed out at the next reload.
 Set `active = true` the same way to restore access.
 
 **Remove a viewer completely**: delete the user under Authentication → Users.
@@ -191,9 +213,11 @@ join auth.users u on u.id = v.user_id
 order by v.created_at;
 ```
 
-**Rolling back 0022**: run `supabase/rollbacks/0022_stats_viewers.down.sql` in
-the SQL editor. It drops the two functions and the table and nothing else;
-admins are unaffected, viewers can no longer sign in.
+**Rolling back**: in the SQL editor, run
+`supabase/rollbacks/0023_runner_lookup.down.sql` to remove only the Runners
+tab's data (the Stats tab keeps working). To remove viewers entirely, run that
+first and then `supabase/rollbacks/0022_stats_viewers.down.sql`. Each drops only
+what its migration added; admins are unaffected.
 
 ### Database tests
 
@@ -204,12 +228,16 @@ bash supabase/tests/run-db-tests.sh
 Runs on a throwaway local PostgreSQL and never touches Supabase. It applies
 `supabase/tests/bootstrap.sql` (stand-ins for Supabase's auth, storage and
 roles), then every migration in order, so the tests see the real `is_admin()`
-and the real policies. Then it runs each `*.test.sql`, checks 0022 can be
-re-run, and checks its rollback. Needs PostgreSQL 15+ (`initdb`, `pg_ctl`,
-`psql`); set `PG_BIN` to their folder if they are not on `PATH`.
+and the real policies. Then it runs each `*.test.sql` (shared setup in
+`helpers.sql` / `cleanup.sql`), checks that every migration with a rollback
+script can be re-run, rolls them back newest first, and re-applies them. Needs
+PostgreSQL 15+ (`initdb`, `pg_ctl`, `psql`); set `PG_BIN` to their folder if
+they are not on `PATH`.
 
-After applying 0022 and adding a viewer, check the live project with that
-viewer's login. It is read-only and sends nothing:
+After applying 0022 and 0023 and adding a viewer, check the live project with
+that viewer's login. It covers the stats, the runner list's columns and masking,
+the empty table reads and the send-bulk-email 403. It is read-only and sends
+nothing:
 
 ```bash
 VIEWER_EMAIL=akash@example.com VIEWER_PASSWORD='...' node supabase/tests/stats-viewer-live-check.mjs

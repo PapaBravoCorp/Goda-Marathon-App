@@ -3192,3 +3192,108 @@
     gap: 6px !important;
   }
 }
+
+/* ========================================
+   Runners (a stats viewer's read-only runner lookup)
+   ======================================== */
+.admin-runners-count {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Thirteen short columns: keep each on one line and let the table scroll
+   sideways inside its card instead of breaking names letter by letter. */
+.admin-page .admin-runners-table th,
+.admin-page .admin-runners-table td {
+  padding: 10px 8px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.admin-runners-table tbody th {
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-text-main);
+}
+
+.admin-runners-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem !important;
+}
+
+/* Status key above the list: what each badge means and who to ask. */
+.admin-runners-legend {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: rgba(var(--color-fg-rgb), 0.03);
+  font-size: 0.85rem;
+}
+
+.admin-runners-legend ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-runners-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-soft);
+}
+
+.admin-runners-legend p {
+  margin: 0.65rem 0 0;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.admin-runners-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+@media (max-width: 560px) {
+  /* Same as the Stats toolbar: two buttons fit with their words. */
+  .admin-runners-panel .admin-action-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: nowrap;
+  }
+
+  .admin-runners-panel .admin-action-btn {
+    gap: 6px !important;
+  }
+}
+
+/* The viewer's bar has two tabs, so on a phone they keep their words instead
+   of collapsing to icons like the admin's eleven. */
+@media (max-width: 560px) {
+  .admin-tabs-labelled .admin-tab {
+    flex: 1 1 0;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .admin-tabs-labelled .admin-tab-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+  }
+}
