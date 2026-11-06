@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Lock, LogOut, Eye, EyeOff, ShieldCheck, Users, LayoutGrid,
   CalendarClock, Image, Settings, Mail, MessageSquare, Mailbox, AlertTriangle,
-  UsersRound, Tag, Globe, BarChart3,
+  UsersRound, Tag, Globe, BarChart3, Activity,
 } from 'lucide-react';
 import { CURRENT_EVENT } from '../utils/constants';
 import { getCurrentEvent } from '../utils/services/events';
@@ -10,6 +10,7 @@ import { signIn, signOut, getSession, getDashboardRole, onAuthChange, describeAu
 
 import RegistrationManager from '../components/admin/RegistrationManager';
 import StatsPanel from '../components/admin/StatsPanel';
+import RegistrationLog from '../components/admin/RegistrationLog';
 import RunnersPanel from '../components/admin/RunnersPanel';
 import GroupManager from '../components/admin/GroupManager';
 import CouponManager from '../components/admin/CouponManager';
@@ -129,6 +130,7 @@ function AdminLogin({ onSignedIn }) {
 
 const TABS = [
   { id: 'registrations', label: 'Registrations', icon: Users },
+  { id: 'activity', label: 'Activity', icon: Activity },
   { id: 'stats', label: 'Stats', icon: BarChart3 },
   { id: 'groups', label: 'Groups', icon: UsersRound },
   { id: 'coupons', label: 'Coupons', icon: Tag },
@@ -281,6 +283,7 @@ export default function Admin() {
         {activeTab === 'registrations' && (
           <RegistrationManager eventSlug={eventId} eventUuid={eventId} />
         )}
+        {activeTab === 'activity' && <RegistrationLog eventId={eventId} />}
         {activeTab === 'stats' && <StatsPanel eventId={eventId} />}
         {activeTab === 'groups' && <GroupManager eventSlug={eventId} />}
         {activeTab === 'coupons' && <CouponManager eventId={eventId} />}

@@ -22,8 +22,8 @@ PORT="${PGTEST_PORT:-54329}"
 
 # Everything the reversible migrations create; all of it must be gone after
 # their rollbacks run. Add to these lists when a new rollback script is added.
-ADDED_TABLES="'stats_viewers'"
-ADDED_FUNCTIONS="'can_view_stats', 'get_reg_stats', 'list_registrations_basic', 'mask_phone', 'mask_email'"
+ADDED_TABLES="'stats_viewers', 'registration_log'"
+ADDED_FUNCTIONS="'can_view_stats', 'get_reg_stats', 'list_registrations_basic', 'mask_phone', 'mask_email', 'log_registration_event', 'admin_registration_log', '_live_entry_email'"
 # Columns the reversible migrations add to existing tables, as table.column.
 ADDED_COLUMNS="'events.featured_coupon_code', 'site_settings.category_badge', 'site_settings.category_badge_text',
   'coupons.next_discount_value', 'coupons.next_discount_from', 'events.featured_coupon_auto_apply'"
