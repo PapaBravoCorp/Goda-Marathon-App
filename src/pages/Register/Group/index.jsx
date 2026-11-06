@@ -12,6 +12,9 @@ import {
 } from '../../../utils/services/payments';
 import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../../utils/validation';
 import { trackEvent } from '../../../utils/analytics';
+import {
+  logRegistrationEvent, flushRegistrationLog, paymentLogFields,
+} from '../../../utils/services/registrationLog';
 
 import Seo from '../../../components/Seo';
 
@@ -101,6 +104,36 @@ export default function GroupRegister() {
   const formRef = useRef(null);
   const onlinePayment = isOnlinePaymentEnabled(eventConfig);
 
+  // Who and what the activity log rows are about: the coordinator, and the
+  // roster as "10K ×3, 21K ×1". Kept in a ref, refreshed after every render,
+  // so the payment callbacks see the latest values without being re-created
+  // on every keystroke.
+  const logContext = useRef({});
+  useEffect(() => {
+    logContext.current = {
+      eventId: eventConfig?.id || CURRENT_EVENT.slug,
+      person: {
+        email: (captain.email || result?.captain_email || '').trim(),
+        firstName: captain.firstName.trim(),
+        lastName: captain.lastName.trim(),
+        phone: captain.phone.trim(),
+      },
+      category: Object.entries(
+        participants.reduce((acc, p) => {
+          if (p.category) acc[p.category] = (acc[p.category] || 0) + 1;
+          return acc;
+        }, {})
+      ).map(([name, n]) => `${name} ×${n}`).join(', ') || undefined,
+      participantCount: result?.participant_count ?? participants.length,
+      groupId: result?.group_id,
+      amount: result?.total,
+    };
+  });
+  const logEvent = useCallback(
+    (fields) => logRegistrationEvent({ flow: 'GROUP', ...logContext.current, ...fields }),
+    []
+  );
+
   /* ── Load event + categories, restore any draft ───────────────────────── */
 
   useEffect(() => {
@@ -150,6 +183,8 @@ export default function GroupRegister() {
     })();
 
     trackEvent('group_registration_started', { eventName: CURRENT_EVENT.name });
+    // Activity that could not be sent last time (no network) goes now.
+    flushRegistrationLog();
     return () => { cancelled = true; };
   }, []);
 
@@ -522,6 +557,18 @@ export default function GroupRegister() {
       dueAt: group.payment_due_at,
       prefill,
     });
+    logEvent({
+      stage: 'PAYMENT',
+      ...paymentLogFields(outcome),
+      groupId: group.group_id,
+      amount: group.total,
+      error: outcome.error,
+      context: {
+        group_code: group.group_code || undefined,
+        payment_id: outcome.paymentId || outcome.result?.paymentId || undefined,
+        service_code: outcome.code || undefined,
+      },
+    });
 
     if (outcome.outcome === 'paid') {
       handlePaid(outcome.result);
@@ -533,12 +580,19 @@ export default function GroupRegister() {
       if (outcome.code === 'DISABLED') localStorage.removeItem(DRAFT_KEY);
       trackEvent('payment_not_completed', { flow: 'group', outcome: outcome.outcome, reason: outcome.code });
     }
-  }, [pay, handlePaid]);
+  }, [pay, handlePaid, logEvent]);
 
   const recheckPayment = useCallback(async () => {
     const outcome = await recheck();
+    if (outcome) {
+      logEvent({
+        stage: 'PAYMENT',
+        ...paymentLogFields(outcome),
+        context: { recheck: true, payment_id: outcome.paymentId || undefined },
+      });
+    }
     if (outcome?.outcome === 'paid') handlePaid(outcome.result);
-  }, [recheck, handlePaid]);
+  }, [recheck, handlePaid, logEvent]);
 
   /** The group's reservation lapsed: back to the confirm step, roster intact. */
   const startOver = useCallback(() => {
@@ -556,6 +610,14 @@ export default function GroupRegister() {
    */
   const cancelReservation = useCallback(async () => {
     const outcome = await cancelPayment({ groupId: result?.group_id });
+    logEvent({
+      stage: 'CANCEL',
+      ...(outcome.status === 'CANCELLED' || outcome.status === 'NOT_FOUND'
+        ? { status: 'ABANDONED', code: 'RUNNER_CANCELLED' }
+        : outcome.status === 'PAID'
+          ? { status: 'INFO', code: 'PAID_BEFORE_CANCEL' }
+          : { status: 'FAILED', code: `CANCEL_${outcome.status || 'ERROR'}` }),
+    });
 
     if (outcome.status === 'PAID') {
       handlePaid({ paymentId: outcome.payment_ref });
@@ -571,7 +633,7 @@ export default function GroupRegister() {
       trackEvent('reservation_cancelled', { flow: 'group' });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [cancelPayment, result?.group_id, handlePaid, resetPayment]);
+  }, [cancelPayment, result?.group_id, handlePaid, resetPayment, logEvent]);
 
   const formHasData = Object.keys(EMPTY_CAPTAIN).some(k => captain[k] !== EMPTY_CAPTAIN[k])
     || participants.length !== 2
@@ -649,6 +711,19 @@ export default function GroupRegister() {
         total: saved?.total,
         coupon: saved?.coupon_code || null,
       });
+      logEvent({
+        stage: 'SUBMIT',
+        status: 'OK',
+        code: saved?.payment_status,
+        groupId: saved?.group_id,
+        amount: saved?.total,
+        participantCount: saved?.participant_count,
+        context: {
+          group_code: saved?.group_code || undefined,
+          coupon: saved?.coupon_code || undefined,
+          payment_due_at: saved?.payment_due_at || undefined,
+        },
+      });
       setStep(4);
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -668,6 +743,16 @@ export default function GroupRegister() {
       }
     } catch (err) {
       setSubmitError(err.message);
+      logEvent({
+        stage: 'SUBMIT',
+        status: 'FAILED',
+        error: err,
+        shownMessage: err.message,
+        context: {
+          coupon: couponCode.trim() || undefined,
+          participant: err.participantName || (err.participantIndex != null ? err.participantIndex + 1 : undefined),
+        },
+      });
 
       // Send the coordinator back to the row that needs fixing, with the error
       // already attached to the field. Leaving them on the confirm screen means

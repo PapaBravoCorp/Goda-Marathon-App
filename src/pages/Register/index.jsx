@@ -12,6 +12,9 @@ import {
 } from '../../utils/services/payments';
 import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../utils/validation';
 import { trackEvent } from '../../utils/analytics';
+import {
+  logRegistrationEvent, flushRegistrationLog, paymentLogFields,
+} from '../../utils/services/registrationLog';
 
 import Seo from '../../components/Seo';
 
@@ -78,6 +81,29 @@ export default function Register() {
   const age = useMemo(() => calculateAge(formData.dob), [formData.dob]);
   const onlinePayment = isOnlinePaymentEnabled(eventConfig);
 
+  // Who and what the activity log rows are about. Kept in a ref, refreshed
+  // after every render, so the logging calls inside the payment callbacks see
+  // the latest values without re-creating those callbacks on every keystroke.
+  const logContext = useRef({});
+  useEffect(() => {
+    logContext.current = {
+      eventId: eventConfig?.id || CURRENT_EVENT.slug,
+      person: {
+        email: (formData.email || registration?.email || '').trim(),
+        firstName: (formData.firstName || registration?.first_name || '').trim(),
+        lastName: (formData.lastName || registration?.last_name || '').trim(),
+        phone: formData.phone.trim(),
+      },
+      category: formData.category || registration?.category,
+      registrationId: registration?.id,
+      amount: registration?.price,
+    };
+  });
+  const logEvent = useCallback(
+    (fields) => logRegistrationEvent({ flow: 'SOLO', ...logContext.current, ...fields }),
+    []
+  );
+
   /* ── Load event + categories, restore any draft ───────────────────────── */
 
   useEffect(() => {
@@ -122,6 +148,8 @@ export default function Register() {
     })();
 
     trackEvent('registration_started', { eventName: CURRENT_EVENT.name });
+    // Activity that could not be sent last time (no network) goes now.
+    flushRegistrationLog();
     return () => { cancelled = true; };
   }, []);
 
@@ -374,6 +402,7 @@ export default function Register() {
         setErrors(dup);
         focusFirstError(dup);
         trackEvent('registration_validation_failed', { step: 2, fields: ['email'], reason: 'duplicate' });
+        logEvent({ stage: 'DETAILS', status: 'FAILED', code: 'EMAIL_TAKEN', shownMessage: dup.email });
         return;
       }
     } finally {
@@ -428,6 +457,17 @@ export default function Register() {
       dueAt: reg.payment_due_at,
       prefill,
     });
+    logEvent({
+      stage: 'PAYMENT',
+      ...paymentLogFields(outcome),
+      registrationId: reg.id,
+      amount: reg.price,
+      error: outcome.error,
+      context: {
+        payment_id: outcome.paymentId || outcome.result?.paymentId || undefined,
+        service_code: outcome.code || undefined,
+      },
+    });
 
     if (outcome.outcome === 'paid') {
       handlePaid(outcome.result);
@@ -442,12 +482,19 @@ export default function Register() {
       if (outcome.code === 'DISABLED') localStorage.removeItem(DRAFT_KEY);
       trackEvent('payment_not_completed', { flow: 'solo', outcome: outcome.outcome, reason: outcome.code });
     }
-  }, [pay, handlePaid]);
+  }, [pay, handlePaid, logEvent]);
 
   const recheckPayment = useCallback(async () => {
     const outcome = await recheck();
+    if (outcome) {
+      logEvent({
+        stage: 'PAYMENT',
+        ...paymentLogFields(outcome),
+        context: { recheck: true, payment_id: outcome.paymentId || undefined },
+      });
+    }
     if (outcome?.outcome === 'paid') handlePaid(outcome.result);
-  }, [recheck, handlePaid]);
+  }, [recheck, handlePaid, logEvent]);
 
   /**
    * The reservation lapsed. The draft was kept until payment for exactly this:
@@ -470,6 +517,14 @@ export default function Register() {
    */
   const cancelReservation = useCallback(async () => {
     const result = await cancelPayment({ registrationId: registration?.id });
+    logEvent({
+      stage: 'CANCEL',
+      ...(result.status === 'CANCELLED' || result.status === 'NOT_FOUND'
+        ? { status: 'ABANDONED', code: 'RUNNER_CANCELLED' }
+        : result.status === 'PAID'
+          ? { status: 'INFO', code: 'PAID_BEFORE_CANCEL' }
+          : { status: 'FAILED', code: `CANCEL_${result.status || 'ERROR'}` }),
+    });
 
     if (result.status === 'PAID') {
       // The payment landed first. Show the confirmation, not the form.
@@ -486,7 +541,7 @@ export default function Register() {
       trackEvent('reservation_cancelled', { flow: 'solo' });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [cancelPayment, registration?.id, handlePaid, resetPayment]);
+  }, [cancelPayment, registration?.id, handlePaid, resetPayment, logEvent]);
 
   // Anything typed or ticked -- the draft restore can bring back someone
   // else's details on a shared computer, which is when this matters most.
@@ -549,6 +604,18 @@ export default function Register() {
         category: formData.category,
         price: saved?.price,
       });
+      logEvent({
+        stage: 'SUBMIT',
+        status: 'OK',
+        code: saved?.payment_status,
+        registrationId: saved?.id,
+        amount: saved?.price,
+        context: {
+          coupon: saved?.coupon_code || undefined,
+          discount: Number(saved?.discount) || undefined,
+          payment_due_at: saved?.payment_due_at || undefined,
+        },
+      });
       setStep(4);
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -571,11 +638,17 @@ export default function Register() {
     } catch (err) {
       // The service turns each database error code into a sentence the runner
       // can act on -- "that category just filled up" rather than a stack trace.
-      setSubmitError(
-        err.code === 'UNKNOWN'
-          ? 'Something went wrong saving your registration. Please try again — your details are still here.'
-          : err.message
-      );
+      const shown = err.code === 'UNKNOWN'
+        ? 'Something went wrong saving your registration. Please try again — your details are still here.'
+        : err.message;
+      setSubmitError(shown);
+      logEvent({
+        stage: 'SUBMIT',
+        status: 'FAILED',
+        error: err,
+        shownMessage: shown,
+        context: { coupon: formData.couponCode.trim() || undefined },
+      });
 
       // A category that filled or closed while the form was open is worth
       // sending them back to step 1 for, rather than leaving them on a submit

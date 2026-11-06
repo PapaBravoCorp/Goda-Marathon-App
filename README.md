@@ -102,6 +102,8 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0020_website_settings.sql` | Admin → Website: header and hero logos, the Register Now effect, the hero's Distances box, the Event Details heading, footer contacts, about line and copyright name, and the homepage Guests of Honour (`featured_guests`) |
 | `0022_stats_viewers.sql` | View-only **stats viewer** logins: `stats_viewers`, `can_view_stats()`, `get_reg_stats()` (counts only). Changes nothing existing. Rollback: `supabase/rollbacks/0022_stats_viewers.down.sql` |
 | `0023_runner_lookup.sql` | Read-only runner list for stats viewers: `list_registrations_basic()`, with phone and email masked in the database (`mask_phone()`, `mask_email()`). Changes nothing existing. Rollback: `supabase/rollbacks/0023_runner_lookup.down.sql` |
+| `0024_drop_legacy_email_constraint.sql` | Drops the dashboard-made `unique_email_per_event`, which counted cancelled rows and made every retry after a lapsed reservation fail |
+| `0025_registration_log.sql` | **Admin → Activity**: `registration_log`, written by the forms through `log_registration_event()` (public, rate-limited, never raises) and read through `admin_registration_log()` (admins only). Every submit OK/failed with the raw database error, payment outcomes, cancellations. Rollback: `supabase/rollbacks/0025_registration_log.down.sql` |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which
 missed allow-all policies that had been created outside these migrations. It

@@ -22,8 +22,8 @@ PORT="${PGTEST_PORT:-54329}"
 
 # Everything the reversible migrations create; all of it must be gone after
 # their rollbacks run. Add to these lists when a new rollback script is added.
-ADDED_TABLES="'stats_viewers'"
-ADDED_FUNCTIONS="'can_view_stats', 'get_reg_stats', 'list_registrations_basic', 'mask_phone', 'mask_email'"
+ADDED_TABLES="'stats_viewers', 'registration_log'"
+ADDED_FUNCTIONS="'can_view_stats', 'get_reg_stats', 'list_registrations_basic', 'mask_phone', 'mask_email', 'log_registration_event', 'admin_registration_log'"
 
 if [ -z "${PG_BIN:-}" ]; then
   if command -v pg_ctl >/dev/null 2>&1; then

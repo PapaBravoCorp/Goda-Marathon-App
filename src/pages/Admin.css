@@ -1528,6 +1528,34 @@
 
 .admin-delivery-timeline em { color: var(--color-text-muted); font-style: normal; }
 
+/* Activity log: the expanded row. */
+.admin-activity-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(var(--color-fg-rgb), 0.06);
+  font-size: 0.78rem;
+}
+
+.admin-activity-details dl {
+  display: grid;
+  grid-template-columns: minmax(7.5em, max-content) 1fr;
+  gap: 4px 12px;
+  margin: 0 0 10px;
+}
+
+.admin-activity-details dt { color: var(--color-text-muted); }
+
+.admin-activity-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (max-width: 520px) {
+  .admin-activity-details dl { grid-template-columns: 1fr; gap: 0; }
+  .admin-activity-details dd { margin-bottom: 6px; }
+}
+
 .admin-email-preview-modal { max-width: 720px; width: 100%; }
 
 .admin-email-preview-subject {
