@@ -5,6 +5,7 @@ import { Field } from '../Field';
 import { controlClass } from '../controls';
 import { calculateAge } from '../../../utils/validation';
 import { TSHIRT_SIZES, BLOOD_GROUPS, GENDERS } from './groupHelpers';
+import EmailSuggestion from '../EmailSuggestion';
 
 /**
  * One runner in the roster.
@@ -91,9 +92,15 @@ export default function ParticipantRow({
 
         <Field id={key('email')} label="Email" required error={err('email')}>
           {(a11y) => (
-            <input {...a11y} type="email" data-field={key('email')}
-              value={participant.email} onChange={set('email')}
-              className={controlClass(err('email'))} />
+            <>
+              <input {...a11y} type="email" data-field={key('email')}
+                value={participant.email} onChange={set('email')}
+                className={controlClass(err('email'))} />
+              <EmailSuggestion
+                email={participant.email}
+                onAccept={(value) => onChange(index, 'email', value)}
+              />
+            </>
           )}
         </Field>
 

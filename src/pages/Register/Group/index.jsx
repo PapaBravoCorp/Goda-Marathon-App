@@ -11,6 +11,7 @@ import {
   isOnlinePaymentEnabled, savePendingPayment, loadPendingPayment, clearPendingPayment,
 } from '../../../utils/services/payments';
 import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../../utils/validation';
+import { emailTypoError } from '../../../utils/emailTypos';
 import { trackEvent } from '../../../utils/analytics';
 import {
   logRegistrationEvent, flushRegistrationLog, paymentLogFields,
@@ -102,6 +103,8 @@ export default function GroupRegister() {
   } = usePayment();
 
   const formRef = useRef(null);
+  // Addresses already questioned with "did you mean …?" -- a second press keeps them.
+  const emailTypoWarned = useRef(new Set());
   const onlinePayment = isOnlinePaymentEnabled(eventConfig);
 
   // Who and what the activity log rows are about: the coordinator, and the
@@ -388,6 +391,10 @@ export default function GroupRegister() {
 
     if (!captain.email.trim()) next.email = 'Enter your email address.';
     else if (!isValidEmail(captain.email.trim())) next.email = 'That email address does not look valid.';
+    else {
+      const typo = emailTypoError(captain.email, emailTypoWarned.current, 'Continue to participants');
+      if (typo) next.email = typo;
+    }
 
     if (!captain.phone.trim()) next.phone = 'Enter your phone number.';
     else if (!isValidPhone(captain.phone.trim())) next.phone = 'Enter a 10-digit Indian mobile number.';
@@ -450,7 +457,11 @@ export default function GroupRegister() {
       if (!email) at('email', 'Enter an email address.');
       else if (!isValidEmail(email)) at('email', 'That email address does not look valid.');
       else if (seen.has(email)) at('email', `Already used by participant ${seen.get(email) + 1}.`);
-      else seen.set(email, i);
+      else {
+        seen.set(email, i);
+        const typo = emailTypoError(email, emailTypoWarned.current, 'Review & apply discount');
+        if (typo) at('email', typo);
+      }
 
       if (!p.phone.trim()) at('phone', 'Enter a phone number.');
       else if (!isValidPhone(p.phone.trim())) at('phone', 'Enter a 10-digit Indian mobile number.');

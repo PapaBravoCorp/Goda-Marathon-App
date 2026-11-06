@@ -11,6 +11,7 @@ import {
   isOnlinePaymentEnabled, savePendingPayment, loadPendingPayment, clearPendingPayment,
 } from '../../utils/services/payments';
 import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../utils/validation';
+import { emailTypoError } from '../../utils/emailTypos';
 import { trackEvent } from '../../utils/analytics';
 import {
   logRegistrationEvent, flushRegistrationLog, paymentLogFields,
@@ -78,6 +79,8 @@ export default function Register() {
   } = usePayment();
 
   const formRef = useRef(null);
+  // Addresses the runner was already asked "did you mean …?" about.
+  const emailTypoWarned = useRef(new Set());
   const age = useMemo(() => calculateAge(formData.dob), [formData.dob]);
   const onlinePayment = isOnlinePaymentEnabled(eventConfig);
 
@@ -350,6 +353,10 @@ export default function Register() {
 
     if (!formData.email.trim()) next.email = 'Enter your email address.';
     else if (!isValidEmail(formData.email.trim())) next.email = 'That email address does not look valid.';
+    else {
+      const typo = emailTypoError(formData.email, emailTypoWarned.current);
+      if (typo) next.email = typo;
+    }
 
     if (!formData.phone.trim()) next.phone = 'Enter your phone number.';
     else if (!isValidPhone(formData.phone.trim())) next.phone = 'Enter a 10-digit Indian mobile number.';

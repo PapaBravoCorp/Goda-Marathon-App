@@ -104,6 +104,7 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0023_runner_lookup.sql` | Read-only runner list for stats viewers: `list_registrations_basic()`, with phone and email masked in the database (`mask_phone()`, `mask_email()`). Changes nothing existing. Rollback: `supabase/rollbacks/0023_runner_lookup.down.sql` |
 | `0024_drop_legacy_email_constraint.sql` | Drops the dashboard-made `unique_email_per_event`, which counted cancelled rows and made every retry after a lapsed reservation fail |
 | `0025_registration_log.sql` | **Admin → Activity**: `registration_log`, written by the forms through `log_registration_event()` (public, rate-limited, never raises) and read through `admin_registration_log()` (admins only). Every submit OK/failed with the raw database error, payment outcomes, cancellations. Rollback: `supabase/rollbacks/0025_registration_log.down.sql` |
+| `0026_registration_log_match_by_phone.sql` | Activity: a person who failed and then got in under another email is matched by phone (last 10 digits) and shown as "Got in as …" instead of needing follow-up. Replaces `admin_registration_log()` only |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which
 missed allow-all policies that had been created outside these migrations. It

@@ -204,10 +204,59 @@ revoke all on function public.log_registration_event(jsonb) from public;
 grant execute on function public.log_registration_event(jsonb) to anon, authenticated;
 
 -- ── 3. Reading: organisers only ─────────────────────────────────────────────
--- Each row says whether that email now holds a live entry: a registration, or
--- a group it coordinates, that is not cancelled. A FAILED row whose person
--- still has no live entry is someone who gave up -- p_stuck_only lists just
--- those, newest failure per person.
+-- Each row says whether that person now holds a live entry: a registration,
+-- or a group they coordinate, that is not cancelled -- matched by email or by
+-- phone, since someone refused under one address may get in under another.
+-- A FAILED row whose person still has none is someone who gave up --
+-- p_stuck_only lists just those, newest failure per person.
+--
+-- (Identical to 0026, which upgrades databases that ran the first version of
+-- this file. Keep the two in step.)
+
+-- The last ten digits of a phone number, or NULL when there are fewer: "+91
+-- 98765 43210", "09876543210" and "9876543210" are the same phone.
+create or replace function public._phone10(p text)
+returns text
+language sql
+immutable
+as $$
+  select case when length(d) >= 10 then right(d, 10) end
+    from (select regexp_replace(coalesce(p, ''), '\D', '', 'g') as d) x;
+$$;
+
+-- The email of a live entry (a registration, or a group this person
+-- coordinates, that is not cancelled) for this person, matched by email or
+-- by phone. NULL when there is none.
+create or replace function public._live_entry_email(p_event_id text, p_email text, p_phone text)
+returns text
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select e from (
+    select lower(r.email) as e, 1 as pref
+      from public.registrations r
+     where r.event_id = p_event_id
+       and r.payment_status is distinct from 'CANCELLED'
+       and (lower(r.email) = lower(p_email)
+            or (public._phone10(p_phone) is not null and public._phone10(r.phone) = public._phone10(p_phone)))
+    union all
+    select lower(g.captain_email), 2
+      from public.registration_groups g
+     where g.event_id = p_event_id
+       and g.payment_status is distinct from 'CANCELLED'
+       and (lower(g.captain_email) = lower(p_email)
+            or (public._phone10(p_phone) is not null and public._phone10(g.captain_phone) = public._phone10(p_phone)))
+  ) m
+  order by (e = lower(p_email)) desc, pref
+  limit 1;
+$$;
+
+-- Helpers for admin_registration_log(), not for the API.
+revoke all on function public._phone10(text) from public, anon, authenticated;
+revoke all on function public._live_entry_email(text, text, text) from public, anon, authenticated;
+
 create or replace function public.admin_registration_log(
   p_event_id   text,
   p_status     text    default null,
@@ -235,16 +284,12 @@ begin
 
   with logged as (
     select l.*,
-           exists (
-             select 1 from public.registrations r
-              where r.event_id = l.event_id and lower(r.email) = lower(l.email)
-                and r.payment_status is distinct from 'CANCELLED'
-           ) or exists (
-             select 1 from public.registration_groups g
-              where g.event_id = l.event_id and lower(g.captain_email) = lower(l.email)
-                and g.payment_status is distinct from 'CANCELLED'
-           ) as has_live_entry
+           live.email is not null as has_live_entry,
+           live.email as live_entry_email
       from public.registration_log l
+      left join lateral (
+        select public._live_entry_email(l.event_id, l.email, l.phone) as email
+      ) live on true
      where l.event_id = p_event_id
        and (p_status is null or l.status = upper(p_status))
        and (p_stage is null or l.stage = upper(p_stage))
@@ -285,14 +330,7 @@ begin
            'stuck',      (select count(distinct lower(f.email))
                             from public.registration_log f
                            where f.event_id = p_event_id and f.status = 'FAILED' and f.email is not null
-                             and not exists (
-                               select 1 from public.registrations r
-                                where r.event_id = f.event_id and lower(r.email) = lower(f.email)
-                                  and r.payment_status is distinct from 'CANCELLED')
-                             and not exists (
-                               select 1 from public.registration_groups g
-                                where g.event_id = f.event_id and lower(g.captain_email) = lower(f.email)
-                                  and g.payment_status is distinct from 'CANCELLED'))
+                             and public._live_entry_email(f.event_id, f.email, f.phone) is null)
          )
     into v_summary
     from public.registration_log l
@@ -302,7 +340,7 @@ begin
 end $$;
 
 comment on function public.admin_registration_log(text, text, text, text, boolean, integer, integer) is
-  'Admin only. Pages through registration_log for an event, newest first, each row with has_live_entry. p_stuck_only: the latest failure of each person who still has no live entry. Also returns summary counts.';
+  'Admin only. Pages through registration_log for an event, newest first. Each row carries has_live_entry and live_entry_email: the person (matched by email or phone) holds a live entry. p_stuck_only: the latest failure of each person who still has none. Also returns summary counts.';
 
 revoke all on function public.admin_registration_log(text, text, text, text, boolean, integer, integer) from public, anon;
 grant execute on function public.admin_registration_log(text, text, text, text, boolean, integer, integer) to authenticated;

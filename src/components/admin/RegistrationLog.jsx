@@ -328,7 +328,11 @@ export default function RegistrationLog({ eventId }) {
                   {row.user_agent && <span>{device(row.user_agent)}</span>}
                   {row.status === 'FAILED' && row.email && (
                     <span className={`admin-badge ${row.has_live_entry ? 'admin-badge-paid' : 'admin-badge-cancelled'}`}>
-                      {row.has_live_entry ? 'Has an entry now' : 'No entry yet'}
+                      {!row.has_live_entry
+                        ? 'No entry yet'
+                        : row.live_entry_email && row.live_entry_email !== row.email
+                          ? `Got in as ${row.live_entry_email}`
+                          : 'Has an entry now'}
                     </span>
                   )}
                 </div>

@@ -204,6 +204,36 @@
 
 .reg-hint { color: var(--color-text-muted); }
 
+/* "Did you mean …@gmail.com?" under an email field. */
+.reg-email-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.reg-email-suggest button {
+  padding: 2px 10px;
+  border: 1px solid var(--color-primary);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-primary-text, var(--color-primary));
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reg-email-suggest button:hover,
+.reg-email-suggest button:focus-visible {
+  background: var(--color-primary);
+  color: #fff;
+}
+
 .reg-error {
   display: flex;
   align-items: flex-start;
