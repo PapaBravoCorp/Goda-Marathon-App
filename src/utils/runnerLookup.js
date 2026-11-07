@@ -1,6 +1,7 @@
 // Search, filters and CSV rows for the Runners tab. Pure functions: no
-// Supabase, no React. Rows are what list_registrations_basic() returns, with
-// phone and email already masked by the database.
+// Supabase, no React. Rows are what list_runners() returns (full phone,
+// masked email, paid_entry) -- or, before migration 0027, what
+// list_registrations_basic() returns, with the phone masked as phone_masked.
 
 const STATUS_ORDER = ['PAID', 'PENDING', 'CANCELLED', 'REFUNDED'];
 
@@ -10,10 +11,17 @@ export function phoneLast4(masked) {
   return m ? m[1] : '';
 }
 
+/** The phone as the row has it: full (0027) or masked (0023). */
+export const rowPhone = (row) => row.phone ?? row.phone_masked ?? '';
+
+/** The last ten digits of a phone, for matching however it was typed. */
+const digits10 = (value) => String(value || '').replace(/\D/g, '').slice(-10);
+
 /**
  * Does the row match what was typed in the search box? Matches the name, the
- * Razorpay payment ID, or the phone's last 4 digits. A full number typed in
- * ("98765 43210", "+91…") matches on its last 4, since that is all we hold.
+ * Razorpay payment ID, or the phone. With the full number (0027) any run of
+ * its digits matches; with only the last 4 (0023), a full number typed in
+ * matches on its last 4.
  */
 export function matchesQuery(row, query) {
   const q = (query || '').trim().toLowerCase();
@@ -22,6 +30,10 @@ export function matchesQuery(row, query) {
   if ((row.razorpay_payment_id || '').toLowerCase().includes(q)) return true;
 
   const compact = q.replace(/[\s+\-()]/g, '');
+  if (row.phone != null) {
+    const typed = compact.length > 10 ? digits10(compact) : compact;
+    return /^\d+$/.test(typed) && digits10(row.phone).includes(typed);
+  }
   const last4 = phoneLast4(row.phone_masked);
   if (last4 && /^\d+$/.test(compact)) {
     return compact.length <= 4 ? last4.includes(compact) : compact.endsWith(last4);
@@ -62,14 +74,14 @@ export function formatIst(iso) {
 export const RUNNER_CSV_HEADER = [
   'Name', 'Category', 'Entry type', 'Group', 'Payment status', 'Amount paid', 'Coupon code',
   'Razorpay payment ID', 'Registered at (IST)', 'Bib', 'T-shirt size', 'City',
-  'Phone (last 4)', 'Email (masked)',
+  'Phone', 'Email (masked)', 'Paid in another entry',
 ];
 
-/** Exactly the columns the database returned, phone and email as masked there. */
+/** Exactly the columns the database returned, email as masked there. */
 export function runnerCsvRows(rows) {
   return rows.map((r) => [
     r.name, r.category, r.entry_type, r.group_name, r.payment_status, r.amount_paid,
     r.coupon_code, r.razorpay_payment_id, formatIst(r.registered_at), r.bib, r.tshirt_size,
-    r.city, r.phone_masked, r.email_masked,
+    r.city, rowPhone(r), r.email_masked, r.paid_entry,
   ]);
 }
