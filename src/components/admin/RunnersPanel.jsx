@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw, Download, Search, Filter } from 'lucide-react';
 import { getRunners, describeRunnersError } from '../../utils/services/runners';
 import {
-  filterRunners, runnerFilterOptions, runnerCsvRows, RUNNER_CSV_HEADER,
+  filterRunners, runnerFilterOptions, runnerCsvRows, RUNNER_CSV_HEADER, rowPhone,
 } from '../../utils/runnerLookup';
 import { downloadCsv } from '../../utils/csv';
 
@@ -32,6 +32,24 @@ function StatusBadge({ status }) {
 
 const dash = (v) => (v == null || v === '' ? '—' : v);
 
+/** A full number is a tap-to-call link; a masked one (before 0027) is text. */
+function Phone({ row }) {
+  const value = rowPhone(row);
+  if (!value) return '—';
+  if (row.phone == null) return value;
+  const dial = value.replace(/[^\d+]/g, '');
+  return <a href={`tel:${dial}`} className="admin-runners-tel">{value}</a>;
+}
+
+/**
+ * A cancelled (or unfinished) attempt by someone who paid in another entry.
+ * Without this the row reads as "paid but not registered".
+ */
+function PaidElsewhere({ row }) {
+  if (!row.paid_entry) return null;
+  return <span className="admin-runners-paid-note">Registered: {row.paid_entry}</span>;
+}
+
 // What each status means, for whoever is answering a runner's question.
 const STATUS_LEGEND = [
   ['PAID', 'confirmed'],
@@ -51,16 +69,20 @@ function StatusLegend() {
           </li>
         ))}
       </ul>
+      <p>
+        A CANCELLED row marked <strong>Registered: …</strong> is an earlier attempt by someone who paid in
+        that other entry — they are in.
+      </p>
       <p>Money deducted but not PAID? Send the Razorpay ID to Papa.</p>
     </div>
   );
 }
 
 /**
- * Read-only runner lookup for stats viewers. Data comes from
- * list_registrations_basic(), which masks phone and email in the database and
- * leaves out DOB, emergency contact, blood group and medical details. There
- * is nothing here that edits anything.
+ * Read-only runner lookup for stats viewers. Data comes from list_runners()
+ * (full phone, email masked in the database, no DOB, emergency contact, blood
+ * group or medical details) -- or list_registrations_basic() with the phone
+ * masked, before migration 0027. There is nothing here that edits anything.
  */
 export default function RunnersPanel({ eventId }) {
   const [rows, setRows] = useState([]);
@@ -99,6 +121,7 @@ export default function RunnersPanel({ eventId }) {
     [rows, query, category, status],
   );
   const shown = matches.slice(0, visible);
+  const hasFullPhones = rows.some((r) => r.phone != null);
 
   const setFilter = (setter) => (e) => { setter(e.target.value); setVisible(STEP); };
 
@@ -130,8 +153,10 @@ export default function RunnersPanel({ eventId }) {
               <Search size={16} className="admin-filter-icon" aria-hidden="true" />
               <input
                 type="search"
-                placeholder="Name, phone last 4, pay ID"
-                aria-label="Search by name, last 4 digits of phone, or Razorpay payment ID"
+                placeholder={hasFullPhones ? 'Name, phone, pay ID' : 'Name, phone last 4, pay ID'}
+                aria-label={hasFullPhones
+                  ? 'Search by name, phone number, or Razorpay payment ID'
+                  : 'Search by name, last 4 digits of phone, or Razorpay payment ID'}
                 value={query}
                 onChange={setFilter(setQuery)}
               />
@@ -155,7 +180,7 @@ export default function RunnersPanel({ eventId }) {
         <p className="admin-runners-count text-muted" role="status">
           {!hasLoaded && isLoading ? 'Loading runners…'
             : `${matches.length.toLocaleString('en-IN')} of ${rows.length.toLocaleString('en-IN')} entries`}
-          {' · '}phone and email are partly hidden
+          {' · '}{hasFullPhones ? 'email is partly hidden' : 'phone and email are partly hidden'}
         </p>
 
         <StatusLegend />
@@ -193,9 +218,12 @@ export default function RunnersPanel({ eventId }) {
                     {shown.map((r, i) => (
                       <tr key={`${r.registered_at}-${r.bib ?? ''}-${i}`}>
                         <th scope="row" className="admin-cell-name">{dash(r.name)}</th>
-                        <td className="admin-runners-mono">{dash(r.phone_masked)}</td>
+                        <td className="admin-runners-mono"><Phone row={r} /></td>
                         <td>{dash(r.bib)}</td>
-                        <td><StatusBadge status={r.payment_status} /></td>
+                        <td>
+                          <StatusBadge status={r.payment_status} />
+                          <PaidElsewhere row={r} />
+                        </td>
                         <td>{dash(r.category)}</td>
                         <td className="admin-num">{formatAmount(r.amount_paid)}</td>
                         <td>{entryLabel(r)}</td>
@@ -220,9 +248,13 @@ export default function RunnersPanel({ eventId }) {
                     <span className="admin-reg-card-name">{dash(r.name)}</span>
                     <StatusBadge status={r.payment_status} />
                   </div>
+                  <PaidElsewhere row={r} />
                   <div className="admin-reg-card-details">
+                    <div className="admin-reg-card-row">
+                      <span className="admin-reg-card-label">Phone</span>
+                      <span className="admin-reg-card-value"><Phone row={r} /></span>
+                    </div>
                     {[
-                      ['Phone', r.phone_masked],
                       ['Bib', r.bib],
                       ['Category', r.category],
                       ['Amount', formatAmount(r.amount_paid)],

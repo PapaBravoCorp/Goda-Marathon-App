@@ -102,6 +102,10 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0020_website_settings.sql` | Admin → Website: header and hero logos, the Register Now effect, the hero's Distances box, the Event Details heading, footer contacts, about line and copyright name, and the homepage Guests of Honour (`featured_guests`) |
 | `0022_stats_viewers.sql` | View-only **stats viewer** logins: `stats_viewers`, `can_view_stats()`, `get_reg_stats()` (counts only). Changes nothing existing. Rollback: `supabase/rollbacks/0022_stats_viewers.down.sql` |
 | `0023_runner_lookup.sql` | Read-only runner list for stats viewers: `list_registrations_basic()`, with phone and email masked in the database (`mask_phone()`, `mask_email()`). Changes nothing existing. Rollback: `supabase/rollbacks/0023_runner_lookup.down.sql` |
+| `0024_drop_legacy_email_constraint.sql` | Drops the dashboard-made `unique_email_per_event`, which counted cancelled rows and made every retry after a lapsed reservation fail |
+| `0025_registration_log.sql` | **Admin → Activity**: `registration_log`, written by the forms through `log_registration_event()` (public, rate-limited, never raises) and read through `admin_registration_log()` (admins only). Every submit OK/failed with the raw database error, payment outcomes, cancellations. Rollback: `supabase/rollbacks/0025_registration_log.down.sql` |
+| `0026_registration_log_match_by_phone.sql` | Activity: a person who failed and then got in under another email is matched by phone (last 10 digits) and shown as "Got in as …" instead of needing follow-up. Replaces `admin_registration_log()` only |
+| `0027_runner_list_with_phone.sql` | Runners tab: `list_runners()` with the full phone (email still masked) and `paid_entry` on a cancelled attempt by someone who paid in another entry. Leaves 0023's masked function in place. Rollback: `supabase/rollbacks/0027_runner_list_with_phone.down.sql` |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which
 missed allow-all policies that had been created outside these migrations. It
@@ -152,13 +156,17 @@ migrations 0022 and 0023):
   plus a CSV of those totals.
 - **Runners**: one row per entry, every status, with name, category,
   individual/group (and group name), payment status, amount paid, coupon code,
-  Razorpay payment ID, registered at, bib, T-shirt size and city. The phone
-  shows only its last 4 digits and the email only its first 2 characters plus
-  the domain; the database masks them, so the full values never reach the
-  browser. Date of birth, emergency contact, blood group and medical details are
-  never included. Searchable by name, phone last 4 and Razorpay ID; filterable
-  by category and payment status; CSV of exactly these columns. A status key
-  above the list says what PAID, PENDING, CANCELLED and REFUNDED mean.
+  Razorpay payment ID, registered at, bib, T-shirt size and city. The phone is
+  shown in full as a tap-to-call link (since 0027; decided 7 Nov 2026 so the
+  organisers can phone runners) and the email only its first 2 characters plus
+  the domain, masked in the database. Date of birth, emergency contact, blood
+  group and medical details are never included. A cancelled or unfinished
+  attempt by someone who paid in another entry says so ("Registered: 5Km Goda
+  Yatra · bib 5005"), matched by phone or email. Searchable by name, phone and
+  Razorpay ID; filterable by category and payment status; CSV of exactly these
+  columns. A status key above the list says what PAID, PENDING, CANCELLED and
+  REFUNDED mean. Before 0027 is applied the tab falls back to 0023's list, with
+  the phone masked to its last 4 digits.
 
   **Amount paid** is what the runner was charged, after any coupon, and only
   for PAID entries. It never follows the category's current price. A solo

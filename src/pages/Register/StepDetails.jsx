@@ -3,6 +3,7 @@ import { Button } from '../../components/Button';
 import { Field } from './Field';
 import { controlClass } from './controls';
 import { INDIAN_STATES } from '../../utils/constants';
+import EmailSuggestion from './EmailSuggestion';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
@@ -46,9 +47,15 @@ export default function StepDetails({
             hint={isCheckingEmail ? 'Checking this email…' : 'Your confirmation and race updates go here.'}
           >
             {(a11y) => (
-              <input {...a11y} type="email" name="email" value={formData.email}
-                onChange={onChange} placeholder="asha@example.com" autoComplete="email"
-                className={controlClass(errors.email)} />
+              <>
+                <input {...a11y} type="email" name="email" value={formData.email}
+                  onChange={onChange} placeholder="asha@example.com" autoComplete="email"
+                  className={controlClass(errors.email)} />
+                <EmailSuggestion
+                  email={formData.email}
+                  onAccept={(value) => onChange({ target: { name: 'email', value, type: 'email' } })}
+                />
+              </>
             )}
           </Field>
 

@@ -6,6 +6,7 @@ import { Button } from '../../../components/Button';
 import { Field } from '../Field';
 import { controlClass } from '../controls';
 import { INDIAN_STATES } from '../../../utils/constants';
+import EmailSuggestion from '../EmailSuggestion';
 
 /**
  * Step 1 — who is entering the group.
@@ -71,9 +72,15 @@ export default function StepCoordinator({ captain, errors, onChange, onNext }) {
           <Field id="email" label="Email" required error={errors.email}
             hint="Payment instructions and the group summary go here.">
             {(a11y) => (
-              <input {...a11y} type="email" name="email" value={captain.email}
-                onChange={onChange} autoComplete="email"
-                className={controlClass(errors.email)} />
+              <>
+                <input {...a11y} type="email" name="email" value={captain.email}
+                  onChange={onChange} autoComplete="email"
+                  className={controlClass(errors.email)} />
+                <EmailSuggestion
+                  email={captain.email}
+                  onAccept={(value) => onChange({ target: { name: 'email', value } })}
+                />
+              </>
             )}
           </Field>
 
