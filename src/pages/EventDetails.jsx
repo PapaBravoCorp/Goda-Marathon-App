@@ -4,6 +4,8 @@ import { Button } from '../components/Button';
 import { MapPin, Calendar, Clock, Award, Info, Loader } from 'lucide-react';
 import { getCurrentEvent } from '../utils/services/events';
 import { getEventCategories } from '../utils/services/categories';
+import { dealFor } from '../utils/offer';
+import { useAutoOffer } from '../utils/useOffer';
 import { getEventSchedule } from '../utils/services/schedule';
 import { getSiteSettings } from '../utils/services/siteSettings';
 import { useSiteSettings } from '../utils/useSiteSettings';
@@ -75,6 +77,8 @@ export default function EventDetails() {
   const [isLoading, setIsLoading] = useState(true);
   // The page heading can be set apart from the event name in Admin -> Website.
   const { eventHeading } = resolveSiteBranding(useSiteSettings());
+  // The code the registration form applies unasked, priced per category.
+  const { offer } = useAutoOffer(event, dbCategories);
 
   useEffect(() => {
     loadEvent();
@@ -289,9 +293,20 @@ export default function EventDetails() {
                   }}>
                     <span>
                       {cat.name}
-                      {cat.price != null && (
-                        <span className="text-muted" style={{ fontSize: '0.8rem' }}> — {formatPrice(cat.price)}</span>
-                      )}
+                      {cat.price != null && (() => {
+                        const deal = dealFor(offer?.quotes, cat.name, cat.price);
+                        return deal ? (
+                          <span style={{ fontSize: '0.8rem' }}>
+                            {' — '}
+                            <s className="text-muted">
+                              <span className="sr-only">Was </span>{formatPrice(deal.list)}
+                            </s>{' '}
+                            <strong><span className="sr-only">now </span>{formatPrice(deal.price)}</strong>
+                          </span>
+                        ) : (
+                          <span className="text-muted" style={{ fontSize: '0.8rem' }}> — {formatPrice(cat.price)}</span>
+                        );
+                      })()}
                       {cat.elevation && cat.elevation !== '0m' && (
                         <span className="text-muted" style={{ fontSize: '0.8rem' }}> (Elev: {cat.elevation})</span>
                       )}
@@ -304,6 +319,12 @@ export default function EventDetails() {
                     </span>
                   </div>
                 ))}
+
+                {offer && e.registration_open && (
+                  <p style={{ fontSize: '0.85rem', marginBottom: '12px', textAlign: 'center', color: 'var(--color-primary-text)', fontWeight: 600 }}>
+                    {offer.summary.label} with code {offer.code}, applied automatically when you register.
+                  </p>
+                )}
 
                 <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '24px', textAlign: 'center' }}>
                   {e.registration_open

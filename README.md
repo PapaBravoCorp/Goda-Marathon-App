@@ -101,6 +101,7 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0019_category_course_maps.sql` | A GPX course map per category (`event_categories.route_gpx`); lets the media bucket accept GPX files |
 | `0020_website_settings.sql` | Admin → Website: header and hero logos, the Register Now effect, the hero's Distances box, the Event Details heading, footer contacts, about line and copyright name, and the homepage Guests of Honour (`featured_guests`) |
 | `0022_stats_viewers.sql` | View-only **stats viewer** logins: `stats_viewers`, `can_view_stats()`, `get_reg_stats()` (counts only). Changes nothing existing. Rollback: `supabase/rollbacks/0022_stats_viewers.down.sql` |
+| `0024_featured_coupon.sql` | One discount code per event shown on the site (`events.featured_coupon_code`): applied automatically on the registration form and priced on the category cards. Set it in Admin → Coupons → **Show on site**. Changes nothing existing. Rollback: `supabase/rollbacks/0024_featured_coupon.down.sql` |
 | `0023_runner_lookup.sql` | Read-only runner list for stats viewers: `list_registrations_basic()`, with phone and email masked in the database (`mask_phone()`, `mask_email()`). Changes nothing existing. Rollback: `supabase/rollbacks/0023_runner_lookup.down.sql` |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which

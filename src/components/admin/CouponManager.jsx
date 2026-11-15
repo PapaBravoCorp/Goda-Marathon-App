@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, X, Trash2, Edit3, Tag, Power, TrendingDown } from 'lucide-react';
+import { Plus, X, Trash2, Edit3, Tag, Power, TrendingDown, Megaphone, Link2, Check } from 'lucide-react';
 
 import { getCoupons, addCoupon, updateCoupon, deactivateCoupon, deleteCoupon } from '../../utils/services/coupons';
 import { getEventCategories } from '../../utils/services/categories';
+import { getEventById, updateEvent } from '../../utils/services/events';
+import { clearQuoteCache } from '../../utils/offer';
 import { describeSaveError } from '../../utils/services/errors';
 
 const SCOPES = [
@@ -34,6 +36,9 @@ export default function CouponManager({ eventId }) {
   const [editingId, setEditingId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  // The one code advertised on the site (events.featured_coupon_code, 0024).
+  const [featuredCode, setFeaturedCode] = useState('');
+  const [copiedId, setCopiedId] = useState(null);
 
   const emptyForm = {
     code: '', description: '',
@@ -48,12 +53,14 @@ export default function CouponManager({ eventId }) {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [list, cats] = await Promise.all([
+      const [list, cats, ev] = await Promise.all([
         getCoupons(eventId),
         getEventCategories(eventId, eventId),
+        getEventById(eventId),
       ]);
       setCoupons(list);
       setCategories(cats);
+      setFeaturedCode((ev?.featured_coupon_code || '').toUpperCase());
     } catch (err) {
       setFormError(describeSaveError(err, 'coupons'));
     } finally {
@@ -77,6 +84,8 @@ export default function CouponManager({ eventId }) {
         : [...prev.applies_to_categories, name],
     }));
   };
+
+  const isFeatured = (c) => !!featuredCode && c.code.toUpperCase() === featuredCode;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -126,7 +135,13 @@ export default function CouponManager({ eventId }) {
       };
 
       if (editingId) {
+        const before = coupons.find(c => c.id === editingId);
         await updateCoupon(editingId, payload);
+        // The site finds the featured code by its text, so a rename has to
+        // carry over or the offer silently disappears from the site.
+        if (before && isFeatured(before) && before.code.toUpperCase() !== code) {
+          await updateEvent(eventId, { featured_coupon_code: code });
+        }
       } else {
         await addCoupon(payload);
       }
@@ -174,6 +189,46 @@ export default function CouponManager({ eventId }) {
     setFormError('');
   };
 
+  /**
+   * Show this code on the site, or stop showing it. One code at a time:
+   * choosing another replaces the current one.
+   *
+   * This is the only thing that makes a code public. The site still asks the
+   * database what the code is worth before showing anything, so a featured
+   * code that expires or is deactivated just stops appearing.
+   */
+  const handleToggleFeatured = async (c) => {
+    const next = isFeatured(c) ? null : c.code.toUpperCase();
+    if (next && !window.confirm(
+      `Show "${c.code}" on the site?\n\n` +
+      'It will be applied automatically on the registration form, and the category cards will show the price with it. ' +
+      'Anyone can see and use this code.' +
+      (featuredCode ? `\n\nThis replaces "${featuredCode}".` : '')
+    )) return;
+
+    try {
+      await updateEvent(eventId, { featured_coupon_code: next });
+      setFeaturedCode(next || '');
+      clearQuoteCache();
+      setFormError('');
+    } catch (err) {
+      setFormError(describeSaveError(err, 'site offer settings'));
+    }
+  };
+
+  /** The link a club or company is given: it fills the code in for them. */
+  const handleCopyLink = async (c) => {
+    const link = `${window.location.origin}/register?code=${encodeURIComponent(c.code.toUpperCase())}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedId(c.id);
+      setTimeout(() => setCopiedId(prev => (prev === c.id ? null : prev)), 2000);
+    } catch {
+      // Clipboard access refused (an insecure origin, or a denied permission).
+      window.prompt('Copy this link:', link);
+    }
+  };
+
   const handleToggleActive = async (c) => {
     try {
       await updateCoupon(c.id, { is_active: !c.is_active });
@@ -207,6 +262,8 @@ export default function CouponManager({ eventId }) {
     if (!window.confirm(`Delete the unused code "${c.code}"?`)) return;
     try {
       await deleteCoupon(c.id);
+      // Do not leave the site pointing at a code that no longer exists.
+      if (isFeatured(c)) await updateEvent(eventId, { featured_coupon_code: null });
       await loadData();
     } catch (err) {
       setFormError(describeSaveError(err, 'coupon'));
@@ -440,6 +497,12 @@ export default function CouponManager({ eventId }) {
             </p>
           )}
 
+          <p className="admin-field-hint" style={{ margin: '0 0 1rem' }}>
+            <strong>Show on site</strong> applies one code automatically on the registration
+            form and shows its prices on the category cards. <strong>Copy link</strong> gives
+            a link that fills in any code for whoever opens it, for a club or a company.
+          </p>
+
           <div className="admin-cat-grid">
             {coupons.map(c => {
               const dead = !c.is_active || isExpired(c) || isExhausted(c);
@@ -453,6 +516,12 @@ export default function CouponManager({ eventId }) {
                   <div className="admin-cat-card-header">
                     <div>
                       <h4 className="admin-cat-name admin-coupon-code">{c.code}</h4>
+                      {isFeatured(c) && (
+                        <span className="admin-coupon-onsite">
+                          <Megaphone size={12} aria-hidden="true" />
+                          {dead ? 'Chosen for the site, but not showing' : 'Shown on site'}
+                        </span>
+                      )}
                       {c.description && (
                         <span className="text-muted" style={{ fontSize: '0.8rem' }}>
                           {c.description}
@@ -494,12 +563,24 @@ export default function CouponManager({ eventId }) {
                     </div>
                   </div>
 
-                  <div className="admin-cat-card-actions">
+                  <div className="admin-cat-card-actions admin-coupon-actions">
                     <button className="admin-cat-action-btn" onClick={() => startEdit(c)}>
                       <Edit3 size={14} /> Edit
                     </button>
                     <button className="admin-cat-action-btn" onClick={() => handleToggleActive(c)}>
                       <Power size={14} /> {dead && !c.is_active ? 'Reactivate' : 'Deactivate'}
+                    </button>
+                    <button
+                      className="admin-cat-action-btn"
+                      onClick={() => handleToggleFeatured(c)}
+                      disabled={dead && !isFeatured(c)}
+                      title={dead && !isFeatured(c) ? 'Only a working code can be shown on the site.' : undefined}
+                    >
+                      <Megaphone size={14} /> {isFeatured(c) ? 'Remove from site' : 'Show on site'}
+                    </button>
+                    <button className="admin-cat-action-btn" onClick={() => handleCopyLink(c)}>
+                      {copiedId === c.id ? <Check size={14} /> : <Link2 size={14} />}
+                      {copiedId === c.id ? 'Copied' : 'Copy link'}
                     </button>
                     <button
                       className="admin-cat-action-btn admin-cat-delete-btn"

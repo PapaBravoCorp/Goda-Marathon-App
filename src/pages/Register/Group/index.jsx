@@ -5,6 +5,8 @@ import { CATEGORY_PRICING, CURRENT_EVENT, CATEGORY_RULES } from '../../../utils/
 import { createGroupRegistration } from '../../../utils/services/groupRegistrations';
 import { getEntryBibs } from '../../../utils/services/registrations';
 import { previewCoupon } from '../../../utils/services/coupons';
+import { getLinkCode, takeFreshLinkCode } from '../../../utils/offer';
+import { useAutoOffer } from '../../../utils/useOffer';
 import { getEventCategories } from '../../../utils/services/categories';
 import { getCurrentEvent } from '../../../utils/services/events';
 import {
@@ -76,6 +78,9 @@ export default function GroupRegister() {
   const [captain, setCaptain] = useState(EMPTY_CAPTAIN);
   const [participants, setParticipants] = useState(() => [newParticipant(), newParticipant()]);
   const [couponCode, setCouponCode] = useState('');
+  // True once the coordinator has typed a code (or followed a link carrying
+  // one). Until then the field is filled in for them; after, it is theirs.
+  const [couponTouched, setCouponTouched] = useState(false);
   const [waiversAccepted, setWaiversAccepted] = useState(false);
   const [authorityConfirmed, setAuthorityConfirmed] = useState(false);
 
@@ -117,6 +122,9 @@ export default function GroupRegister() {
           setParticipants(d.participants.map(p => ({ ...newParticipant(), ...p, _key: newParticipant()._key })));
         }
         if (d.couponCode) setCouponCode(d.couponCode);
+        // A draft from before codes were filled in automatically has no flag;
+        // a code in it can only have been typed.
+        setCouponTouched(d.couponTouched ?? !!d.couponCode);
         if (d.step && d.step < 4) setStep(d.step);
       } catch (err) {
         console.error('Failed to parse group registration draft', err);
@@ -158,10 +166,10 @@ export default function GroupRegister() {
   useEffect(() => {
     if (isLoaded && step < 4) {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        step, captain, participants, couponCode,
+        step, captain, participants, couponCode, couponTouched,
       }));
     }
-  }, [isLoaded, step, captain, participants, couponCode]);
+  }, [isLoaded, step, captain, participants, couponCode, couponTouched]);
 
   /* ── Categories, normalised ───────────────────────────────────────────── */
 
@@ -197,6 +205,44 @@ export default function GroupRegister() {
     () => new Map(categories.map(c => [c.name, c])),
     [categories]
   );
+
+  /* ── A code filled in without typing ──────────────────────────────────── */
+
+  // The event's featured code, when it works on a group entry at all.
+  const { ready: autoReady, offer: autoOffer } = useAutoOffer(
+    eventConfig, dbCategories.length > 0 ? categories : [], { isGroup: true }
+  );
+
+  /**
+   * A club or company link (/register/group?code=CLUB20) fills the field in,
+   * whatever the code's rules: a group code usually needs a minimum number of
+   * runners, which no quote can confirm before the roster exists, and the
+   * confirm step explains a refusal in words. Without a link, the featured
+   * code is used, and only when it is valid for groups -- so nobody is told a
+   * code they never typed "cannot be used on a group entry".
+   */
+  useEffect(() => {
+    if (!isLoaded || step === 4 || !autoReady) return;
+
+    const fresh = takeFreshLinkCode();
+    if (fresh) {
+      // Deliberate, so it replaces a code left in a draft and is kept from
+      // here on like a typed one.
+      setCouponTouched(true);
+      setCouponCode(fresh);
+      trackEvent('offer_auto_applied', { code: fresh, source: 'link', flow: 'group' });
+      return;
+    }
+
+    if (couponTouched) return;
+    const want = getLinkCode() || autoOffer?.code || '';
+    if (couponCode !== want) setCouponCode(want);
+  }, [isLoaded, step, autoReady, autoOffer?.code, couponTouched, couponCode]);
+
+  const handleCouponChange = useCallback((value) => {
+    setCouponTouched(true);
+    setCouponCode(value);
+  }, []);
 
   /** One category name per participant — the basket the coupon is priced on. */
   const basket = useMemo(
@@ -576,13 +622,15 @@ export default function GroupRegister() {
   const formHasData = Object.keys(EMPTY_CAPTAIN).some(k => captain[k] !== EMPTY_CAPTAIN[k])
     || participants.length !== 2
     || participants.some(p => BLANK_PARTICIPANT_FIELDS.some(([k, v]) => p[k] !== v))
-    || !!couponCode || waiversAccepted || authorityConfirmed;
+    || (couponTouched && !!couponCode) || waiversAccepted || authorityConfirmed;
 
   const clearForm = () => {
     if (!window.confirm('Clear the coordinator details and the whole roster, and start a new group?')) return;
     setCaptain(EMPTY_CAPTAIN);
     setParticipants([newParticipant(), newParticipant()]);
+    // Untouched again, so the featured code is filled back in.
     setCouponCode('');
+    setCouponTouched(false);
     setWaiversAccepted(false);
     setAuthorityConfirmed(false);
     setQuote(null);
@@ -798,7 +846,7 @@ export default function GroupRegister() {
               participants={participants}
               categoryByName={categoryByName}
               couponCode={couponCode}
-              onCouponChange={setCouponCode}
+              onCouponChange={handleCouponChange}
               quote={quote}
               isQuoting={isQuoting}
               subtotal={subtotal}
