@@ -2490,6 +2490,21 @@
   letter-spacing: 0.06em;
 }
 
+/* The code advertised on the site (events.featured_coupon_code). */
+.admin-coupon-onsite {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Five actions on a coupon card: let them wrap instead of overflowing. */
+.admin-coupon-actions { flex-wrap: wrap; }
+.admin-coupon-actions .admin-cat-action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
 .admin-coupon-summary {
   display: flex;
   align-items: center;

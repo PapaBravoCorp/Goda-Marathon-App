@@ -62,11 +62,18 @@ export default function StepConfirm({
           <div><dt>Email</dt><dd>{formData.email}</dd></div>
           <div><dt>Category</dt><dd>{formData.category || '—'}</dd></div>
           <div><dt>T-shirt</dt><dd>{formData.tshirtSize || '—'}</dd></div>
-          <div><dt>Entry fee</dt><dd>{formatCurrency(price)}</dd></div>
+          <div>
+            <dt>Entry fee</dt>
+            <dd>
+              {discount > 0
+                ? <s className="reg-summary-mrp">{formatCurrency(price)}</s>
+                : formatCurrency(price)}
+            </dd>
+          </div>
 
           {discount > 0 && (
             <div className="reg-summary-discount">
-              <dt>Discount ({couponQuote.code})</dt>
+              <dt>Code {couponQuote.code} applied</dt>
               <dd>− {formatCurrency(discount)}</dd>
             </div>
           )}
@@ -84,7 +91,7 @@ export default function StepConfirm({
           )}
 
           <div className="reg-summary-total">
-            <dt>Amount payable</dt>
+            <dt>You pay</dt>
             <dd>{formatCurrency(total)}</dd>
           </div>
         </dl>

@@ -31,6 +31,8 @@ import { useSiteSettings } from '../utils/useSiteSettings';
 import { resolveSiteBranding } from '../utils/siteBranding';
 import { resolveImageUrl } from '../utils/mediaUrl';
 import { levelLabel } from '../utils/categoryLevels';
+import { dealFor } from '../utils/offer';
+import { useAutoOffer } from '../utils/useOffer';
 import { CURRENT_EVENT } from '../utils/constants';
 import { formatHeroDate, buildCountdownTarget } from '../utils/dates';
 import { toNumber, toKm, describeDistanceRange, distanceLabels } from '../utils/distances';
@@ -90,6 +92,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   // Hero logo, Register Now effect, distances, the videos and guests bands: Admin -> Website.
   const branding = resolveSiteBranding(useSiteSettings());
+  // The code the registration form applies unasked (a link's, or the event's
+  // featured one), priced per category. Null when there is none.
+  const { offer } = useAutoOffer(event, categories);
 
   useEffect(() => {
     let cancelled = false;
@@ -338,6 +343,9 @@ export default function Home() {
                 const badge = categoryBadge(status, slotsLeft, registrationOpen);
                 const elevation = cat.elevation && cat.elevation !== '0m' ? cat.elevation : null;
                 const level = levelLabel(cat.level);
+                // The price with the code the form will apply, so the card and
+                // the checkout show the same figure.
+                const deal = dealFor(offer?.quotes, cat.name, cat.price);
 
                 return (
                   <motion.article
@@ -368,7 +376,19 @@ export default function Home() {
                         </div>
                       )}
 
-                      <div className="cat-card-price">{formatPrice(cat.price)}</div>
+                      {deal ? (
+                        <div className="cat-card-price has-offer">
+                          <s className="cat-card-mrp">
+                            <span className="sr-only">Was </span>{formatPrice(deal.list)}
+                          </s>
+                          <span>
+                            <span className="sr-only">now </span>{formatPrice(deal.price)}
+                          </span>
+                          <span className="cat-card-offer">with code {deal.code}</span>
+                        </div>
+                      ) : (
+                        <div className="cat-card-price">{formatPrice(cat.price)}</div>
+                      )}
 
                       {perks.length > 0 && (
                         <ul className="cat-card-perks">
@@ -413,7 +433,7 @@ export default function Home() {
                       {isAvailable ? (
                         <Link to="/register" style={{ display: 'block' }}>
                           <Button variant="primary" style={{ width: '100%' }}>
-                            Register &middot; {formatPrice(cat.price)}
+                            Register &middot; {formatPrice(deal ? deal.price : cat.price)}
                           </Button>
                         </Link>
                       ) : (

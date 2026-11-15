@@ -1,17 +1,19 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader, Users, RotateCcw } from 'lucide-react';
+import { Loader, Users, RotateCcw, Tag } from 'lucide-react';
 
 import { CATEGORY_PRICING, CURRENT_EVENT, CATEGORY_RULES } from '../../utils/constants';
 import { addRegistration, isEmailRegistered, getEntryBibs } from '../../utils/services/registrations';
 import { getEventCategories } from '../../utils/services/categories';
 import { getCurrentEvent } from '../../utils/services/events';
-import { previewCoupon } from '../../utils/services/coupons';
+import { previewCoupon, describeCouponReason } from '../../utils/services/coupons';
 import {
   isOnlinePaymentEnabled, savePendingPayment, loadPendingPayment, clearPendingPayment,
 } from '../../utils/services/payments';
 import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../utils/validation';
 import { trackEvent } from '../../utils/analytics';
+import { normaliseCode, takeFreshLinkCode } from '../../utils/offer';
+import { useAutoOffer, useCodeQuotes } from '../../utils/useOffer';
 
 import Seo from '../../components/Seo';
 
@@ -67,6 +69,10 @@ export default function Register() {
   const [eventConfig, setEventConfig] = useState(null);
   const [registration, setRegistration] = useState(null);
   const [couponQuote, setCouponQuote] = useState(null);
+  // True once the runner has typed in the code field (or arrived with a draft
+  // that already held a code). From then on the field is theirs: the offer is
+  // suggested, never written over what they entered.
+  const [couponTouched, setCouponTouched] = useState(false);
   const [payer, setPayer] = useState(null);
 
   const {
@@ -86,8 +92,11 @@ export default function Register() {
     const saved = localStorage.getItem(DRAFT_KEY);
     if (saved) {
       try {
-        const { savedStep, savedFormData, savedWaivers } = JSON.parse(saved);
+        const { savedStep, savedFormData, savedWaivers, savedCouponTouched } = JSON.parse(saved);
         if (savedFormData) setFormData(prev => ({ ...prev, ...savedFormData }));
+        // A draft from before codes were applied automatically has no flag;
+        // a code in it can only have been typed.
+        setCouponTouched(savedCouponTouched ?? !!savedFormData?.couponCode);
         if (savedWaivers) setWaivers(prev => ({ ...prev, ...savedWaivers }));
         if (savedStep && savedStep < 4) setStep(savedStep);
       } catch (err) {
@@ -130,9 +139,10 @@ export default function Register() {
     if (isLoaded && step < 4) {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
         savedStep: step, savedFormData: formData, savedWaivers: waivers,
+        savedCouponTouched: couponTouched,
       }));
     }
-  }, [formData, step, waivers, isLoaded]);
+  }, [formData, step, waivers, isLoaded, couponTouched]);
 
   /* ── Categories, normalised ───────────────────────────────────────────── */
 
@@ -174,6 +184,83 @@ export default function Register() {
     () => categories.find(c => c.name === formData.category) || null,
     [categories, formData.category]
   );
+
+  /* ── The offer: a code applied without typing ─────────────────────────── */
+
+  // Quotes exist only for categories the database knows; the legacy fallback
+  // list has no rows to price a code against.
+  const offerCategories = dbCategories.length > 0 ? categories : [];
+  const offerEventId = eventConfig?.id || '';
+
+  // The link code or the event's featured code, whichever takes something off.
+  const { ready: autoReady, offer: autoOffer } = useAutoOffer(eventConfig, offerCategories);
+  // Whatever is in the code field right now, priced per category for the cards.
+  const typed = useCodeQuotes(formData.couponCode, offerEventId, offerCategories);
+
+  const autoCode = autoOffer?.code || '';
+  const currentCode = normaliseCode(formData.couponCode);
+  // An untouched field is about to hold the offer (the effect below writes it
+  // in), so it is treated as holding it already: the cards go straight to the
+  // discounted price instead of showing the list price for a moment first.
+  const showingAuto = !!autoCode && (couponTouched ? currentCode === autoCode : true);
+  // The auto offer's own quotes are already in hand, so the cards do not wait
+  // for the debounced lookup when the field holds that code.
+  const activeQuotes = showingAuto ? autoOffer.quotes : typed.quotes;
+  const activeSummary = showingAuto ? autoOffer.summary : typed.summary;
+  const quotesReady = showingAuto || typed.ready;
+
+  /**
+   * Put the offer in the code field for a runner who has not used it.
+   *
+   * Waits for the quote, so a featured code that has expired, or one that is
+   * for groups only, is never written into a field the runner did not touch --
+   * they would be told "that code has expired" about a code they never typed.
+   * An untouched field is also kept in step: when the featured code changes
+   * between visits, a returning runner's draft moves to the new one.
+   */
+  useEffect(() => {
+    if (!isLoaded || step === 4 || offerCategories.length === 0 || !autoReady) return;
+
+    // Arriving by link is deliberate, and outranks a code left in a draft.
+    const fresh = takeFreshLinkCode();
+    if (fresh && fresh === autoCode) {
+      setCouponTouched(false);
+      setFormData(prev => (prev.couponCode === autoCode ? prev : { ...prev, couponCode: autoCode }));
+      trackEvent('offer_auto_applied', { code: autoCode, source: 'link' });
+      return;
+    }
+
+    if (couponTouched) return;
+    if (formData.couponCode !== autoCode) {
+      setFormData(prev => ({ ...prev, couponCode: autoCode }));
+      if (autoCode) trackEvent('offer_auto_applied', { code: autoCode, source: autoOffer?.source });
+    }
+  }, [isLoaded, step, offerCategories.length, autoReady, autoCode, autoOffer?.source, couponTouched, formData.couponCode]);
+
+  const applyOffer = useCallback(() => {
+    if (!autoCode) return;
+    setCouponTouched(false);
+    setFormData(prev => ({ ...prev, couponCode: autoCode }));
+    trackEvent('offer_applied_from_strip', { code: autoCode });
+  }, [autoCode]);
+
+  // What the code field says about the code in it. Nothing while it is being
+  // checked, and nothing for a network failure: the confirm step quotes again.
+  const couponStatus = useMemo(() => {
+    if (!currentCode || !quotesReady) return null;
+    if (activeSummary) {
+      const chosen = formData.category ? activeQuotes[formData.category] : null;
+      if (chosen && !chosen.valid && chosen.reason !== 'PREVIEW_FAILED') {
+        return { ok: false, text: describeCouponReason(chosen) };
+      }
+      return {
+        ok: true,
+        text: `${activeSummary.code} applied: ${activeSummary.label}${activeSummary.appliesToAll ? '' : ' on selected categories'}.`,
+      };
+    }
+    const refusal = Object.values(activeQuotes).find(q => q && !q.valid && q.reason !== 'PREVIEW_FAILED');
+    return refusal ? { ok: false, text: describeCouponReason(refusal) } : null;
+  }, [currentCode, quotesReady, activeSummary, activeQuotes, formData.category]);
 
   /**
    * A draft can outlive the category it points at — categories are renamed and
@@ -233,7 +320,14 @@ export default function Register() {
 
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    if (name === 'couponCode') {
+      // Uppercased as it is typed, as the group form does: the database matches
+      // codes case-insensitively, and one spelling on screen avoids doubt.
+      setCouponTouched(true);
+      setFormData(prev => ({ ...prev, couponCode: value.toUpperCase() }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    }
     clearError(name);
     setNotice('');
   }, [clearError]);
@@ -490,12 +584,18 @@ export default function Register() {
 
   // Anything typed or ticked -- the draft restore can bring back someone
   // else's details on a shared computer, which is when this matters most.
-  const formHasData = Object.keys(EMPTY_FORM).some(k => formData[k] !== EMPTY_FORM[k])
-    || Object.values(waivers).some(Boolean);
+  // A code the form applied by itself is not something the runner entered.
+  const formHasData = Object.keys(EMPTY_FORM).some(k => (
+    k === 'couponCode'
+      ? couponTouched && formData.couponCode !== ''
+      : formData[k] !== EMPTY_FORM[k]
+  )) || Object.values(waivers).some(Boolean);
 
   const clearForm = () => {
     if (!window.confirm('Clear everything you have entered and start a new registration?')) return;
-    setFormData(EMPTY_FORM);
+    // Untouched again, so the offer is put back for the next runner.
+    setCouponTouched(false);
+    setFormData({ ...EMPTY_FORM, couponCode: autoCode });
     setWaivers(EMPTY_WAIVERS);
     setErrors({});
     setSubmitError('');
@@ -656,6 +756,32 @@ export default function Register() {
           </p>
         )}
 
+        {/* The offer, said once at the top. Applied: what it is and that there
+            is nothing to type. Not applied (the runner cleared the field or
+            typed a code that does nothing): one tap puts it back. */}
+        {step < 4 && autoOffer && (
+          showingAuto ? (
+            <p className="reg-offer" role="status">
+              <Tag size={16} aria-hidden="true" />
+              <span>
+                <strong>
+                  {autoOffer.summary.label} on {autoOffer.summary.appliesToAll ? 'all categories' : 'selected categories'}.
+                </strong>{' '}
+                Code <span className="reg-offer-code">{autoCode}</span> {couponTouched ? 'is applied.' : 'applied automatically.'}
+              </span>
+            </p>
+          ) : (!currentCode || (quotesReady && !activeSummary)) && (
+            <p className="reg-offer reg-offer--idle">
+              <Tag size={16} aria-hidden="true" />
+              <span>
+                Code <span className="reg-offer-code">{autoCode}</span> gives {autoOffer.summary.label.toLowerCase()}
+                {autoOffer.summary.appliesToAll ? ' on all categories' : ' on selected categories'}.
+              </span>
+              <button type="button" className="reg-offer-apply" onClick={applyOffer}>Apply</button>
+            </p>
+          )
+        )}
+
         {step < 4 && (
           <ol className="reg-steps" aria-label="Registration progress">
             {STEPS.map(s => (
@@ -692,6 +818,8 @@ export default function Register() {
               onSelectCategory={handleSelectCategory}
               onNext={submitRace}
               formatCurrency={formatCurrency}
+              quotes={activeQuotes}
+              couponStatus={couponStatus}
             />
           )}
 

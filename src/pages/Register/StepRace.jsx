@@ -2,8 +2,9 @@ import React from 'react';
 import { Button } from '../../components/Button';
 import { Field } from './Field';
 import { controlClass } from './controls';
-import { Check, Lock } from 'lucide-react';
+import { Check, Lock, AlertCircle } from 'lucide-react';
 import { levelLabel } from '../../utils/categoryLevels';
+import { dealFor } from '../../utils/offer';
 
 /**
  * Step 1 — the race itself.
@@ -15,10 +16,15 @@ import { levelLabel } from '../../utils/categoryLevels';
  * Date of birth lives here rather than with the personal details because
  * category eligibility depends on it, and it has to be known before the
  * categories can be filtered.
+ *
+ * `quotes` is the database's price for the code in the coupon field, one per
+ * category. A card with a discount shows the list price struck through beside
+ * what the runner will pay, so the price they choose on is the price charged.
  */
 export default function StepRace({
   formData, errors, age, categories,
   onChange, onSelectCategory, onNext, formatCurrency,
+  quotes = {}, couponStatus = null,
 }) {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -76,6 +82,7 @@ export default function StepRace({
               const available = cat.status === 'Open';
               const disabled = !eligible || !available;
               const selected = formData.category === cat.name;
+              const deal = dealFor(quotes, cat.name, cat.price);
 
               return (
                 <label
@@ -108,7 +115,19 @@ export default function StepRace({
                   </span>
 
                   <span className="reg-category-side">
-                    <span className="reg-category-price">{formatCurrency(cat.price)}</span>
+                    {deal ? (
+                      <>
+                        <span className="reg-category-price">
+                          <s className="reg-category-mrp">
+                            <span className="sr-only">Was </span>{formatCurrency(deal.list)}
+                          </s>{' '}
+                          <span className="sr-only">now </span>{formatCurrency(deal.price)}
+                        </span>
+                        <span className="reg-category-flag is-offer">with code {deal.code}</span>
+                      </>
+                    ) : (
+                      <span className="reg-category-price">{formatCurrency(cat.price)}</span>
+                    )}
                     {!eligible && <span className="reg-category-flag is-blocked">Minimum age {cat.minAge}</span>}
                     {eligible && !available && <span className="reg-category-flag is-blocked">{cat.status}</span>}
                     {eligible && available && cat.slotsLeft !== null && cat.slotsLeft <= 10 && (
@@ -169,18 +188,36 @@ export default function StepRace({
         id="couponCode"
         label="Coupon / Referral Code"
         error={errors.couponCode}
-        hint="Optional. Any discount is shown on the confirmation step before you submit."
+        hint={couponStatus ? undefined : 'Optional. The prices above change as soon as a code applies.'}
       >
         {(a11y) => (
-          <input
-            {...a11y}
-            type="text"
-            name="couponCode"
-            value={formData.couponCode}
-            onChange={onChange}
-            placeholder="Enter code"
-            className={controlClass(errors.couponCode)}
-          />
+          <>
+            <input
+              {...a11y}
+              type="text"
+              name="couponCode"
+              value={formData.couponCode}
+              onChange={onChange}
+              placeholder="Enter code"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck="false"
+              className={`${controlClass(errors.couponCode)} reg-coupon-input`}
+              aria-describedby={couponStatus ? 'couponCode-status' : a11y['aria-describedby']}
+            />
+            {couponStatus && (
+              <span
+                id="couponCode-status"
+                role="status"
+                className={`reg-coupon-status ${couponStatus.ok ? 'is-ok' : 'is-bad'}`}
+              >
+                {couponStatus.ok
+                  ? <Check size={14} aria-hidden="true" />
+                  : <AlertCircle size={14} aria-hidden="true" />}
+                {couponStatus.text}
+              </span>
+            )}
+          </>
         )}
       </Field>
 

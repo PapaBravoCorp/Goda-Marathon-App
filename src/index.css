@@ -1511,6 +1511,30 @@ a.story-card:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* With a code applied for the visitor: list price struck through, the price
+   they will pay at full size, and the code that gives it. */
+.cat-card-price.has-offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.cat-card-mrp {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration-thickness: 1.5px;
+}
+
+.cat-card-offer {
+  flex-basis: 100%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-primary-text);
+}
+
 .cat-card-perks {
   list-style: none;
   display: flex;
