@@ -15,6 +15,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { env, safeEqual } from './edge.ts';
+import { metaCapiEnabled, runInBackground, sendMetaPurchase } from './metaCapi.ts';
 
 // Re-exported so the razorpay-* functions keep importing everything from here.
 export { CORS, ConfigError, UUID_RE, env, json, serviceClient } from './edge.ts';
@@ -146,10 +147,23 @@ export async function settlePayment(admin: SupabaseClient, input: RazorpayPaymen
   });
   if (error) throw new Error(`confirm_payment failed: ${error.message}`);
 
-  return data as {
+  const summary = data as {
     status: 'PAID' | 'REFUND_REQUIRED' | 'UNKNOWN_ORDER' | string;
     payment_id?: string;
     registration?: Record<string, unknown> | null;
     group?: Record<string, unknown> | null;
   };
+
+  // Server-side Purchase for Meta ads. Both razorpay-verify and the webhook
+  // come through here; the shared event_id makes Meta count it once. Never
+  // allowed to fail or delay the payment itself.
+  if (summary?.status === 'PAID' && metaCapiEnabled()) {
+    const settled = payment;
+    await runInBackground((async () => {
+      const order = await razorpay<{ notes?: Record<string, unknown> }>(`/orders/${settled.order_id}`);
+      await sendMetaPurchase(admin, summary, settled, order.notes ?? {});
+    })().catch((err) => console.error('Meta Conversions API:', (err as Error).message)));
+  }
+
+  return summary;
 }

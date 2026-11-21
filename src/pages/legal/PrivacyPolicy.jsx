@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
     <LegalPage
       title="Privacy Policy"
       description={`How ${ORGANISATION.name} collects, uses and protects the personal information you provide when registering for the GODA Epic Trail Run.`}
-      lastUpdated="2026-09-21"
+      lastUpdated="2026-11-21"
     >
       <p>
         This policy explains what personal information {ORGANISATION.name} collects
@@ -88,6 +88,29 @@ export default function PrivacyPolicy() {
         your device and is cleared once you submit.
       </p>
 
+      <h3>Advertising measurement (Meta Pixel)</h3>
+      <p>
+        We advertise the event on Facebook and Instagram, and use the Meta Pixel,
+        a script from Meta Platforms, to see which ads bring people to the site
+        and to registration. It sets cookies in your browser and tells Meta which
+        pages you open, the links you use to contact us, the steps of the registration form you complete, the
+        category you choose and the amount you pay. When a payment is confirmed,
+        we also send Meta your email address, mobile number, name, city, state
+        and PIN code in hashed (scrambled, one-way) form, with your IP address
+        and browser details, so Meta can match the registration to an ad you
+        saw.
+      </p>
+      <p>
+        Your date of birth, gender, emergency contact and any health information
+        are never sent to Meta. The pixel is not used in the organisers&apos;
+        admin area. Meta handles this data under its own{' '}
+        <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer">privacy policy</a>.
+        You can limit ads based on activity from other websites in your Facebook
+        or Instagram settings (Ad preferences), and block the pixel entirely with
+        your browser&apos;s tracking protection or an ad blocker; registration
+        works the same either way.
+      </p>
+
       <h2>3. Why we use it</h2>
       <ul>
         <li><strong>To register you</strong> and issue a bib number.</li>
@@ -95,6 +118,7 @@ export default function PrivacyPolicy() {
         <li><strong>To contact you</strong> about payment, bib collection, route changes, timings and results.</li>
         <li><strong>To publish results</strong>, which show your bib number, name, category, finish time and rank, and nothing else.</li>
         <li><strong>To meet our obligations</strong> as event organisers, including insurance and any permissions required by local authorities.</li>
+        <li><strong>To measure and improve our advertising</strong> on Facebook and Instagram, as described under Advertising measurement above.</li>
       </ul>
       <p>
         We do not sell your information, and we do not share it with third parties
@@ -107,6 +131,7 @@ export default function PrivacyPolicy() {
         <li><strong>Medical, physiotherapy and rescue teams</strong> on race day, limited to the safety information above.</li>
         <li><strong>Timing partners</strong>, limited to your bib number, name and category.</li>
         <li><strong>Our service providers</strong>, who host the website and database on our behalf and process data only on our instructions.</li>
+        <li><strong>Meta Platforms</strong>, limited to the advertising measurement data described above.</li>
         <li><strong>Authorities</strong>, where the law requires it.</li>
       </ul>
 

@@ -11,8 +11,8 @@ import {
   isOnlinePaymentEnabled, savePendingPayment, loadPendingPayment, clearPendingPayment,
 } from '../../utils/services/payments';
 import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../utils/validation';
-import { trackEvent } from '../../utils/analytics';
-import { normaliseCode, takeFreshLinkCode } from '../../utils/offer';
+import { trackEvent, trackConversion } from '../../utils/analytics';
+import { normaliseCode, takeFreshLinkCode, dealFor } from '../../utils/offer';
 import { useAutoOffer, useCodeQuotes } from '../../utils/useOffer';
 
 import Seo from '../../components/Seo';
@@ -209,6 +209,14 @@ export default function Register() {
   const activeSummary = showingAuto ? autoOffer.summary : typed.summary;
   const quotesReady = showingAuto || typed.ready;
 
+  // What the chosen entry costs with the code in the field, for the ad
+  // analytics only. The database prices the real entry when it is submitted.
+  const entryValue = useMemo(() => {
+    if (!selectedCategory) return undefined;
+    const deal = dealFor(activeQuotes, selectedCategory.name, selectedCategory.price);
+    return deal ? deal.price : Number(selectedCategory.price) || 0;
+  }, [selectedCategory, activeQuotes]);
+
   /**
    * Put the offer in the code field for a runner who has not used it.
    *
@@ -401,7 +409,7 @@ export default function Register() {
     }
 
     setErrors({});
-    trackEvent('registration_step_completed', { step: 1, category: formData.category, age });
+    trackEvent('registration_step_completed', { step: 1, category: formData.category, age, value: entryValue });
     setStep(2);
   };
 
@@ -475,7 +483,9 @@ export default function Register() {
     }
 
     setErrors({});
-    trackEvent('registration_step_completed', { step: 2, city: formData.city, state: formData.state });
+    trackEvent('registration_step_completed', {
+      step: 2, category: formData.category, value: entryValue, city: formData.city, state: formData.state,
+    });
     setStep(3);
   };
 
@@ -515,8 +525,26 @@ export default function Register() {
     return () => { stale = true; };
   }, [paidWithoutBib, registration?.id]);
 
+  // Purchase / CompleteRegistration for the ad analytics, once the entry is
+  // really confirmed: paid by whichever route the payment landed (Checkout,
+  // "check again", the webhook first, or found paid when cancelling), or
+  // saved with online payment off. trackConversion() sends once per entry.
+  const entryConfirmed = registration?.payment_status === 'PAID'
+    || (!!registration?.id && registration?.payment_status === 'PENDING'
+      && (!registration?.payment_due_at || payPhase === 'offline'));
+  useEffect(() => {
+    if (!entryConfirmed || !registration?.id) return;
+    trackConversion({
+      id: registration.id,
+      flow: 'solo',
+      paid: registration.payment_status === 'PAID',
+      value: registration.price,
+      categories: [registration.category || formData.category],
+    });
+  }, [entryConfirmed, registration?.id, registration?.payment_status, registration?.price, registration?.category, formData.category]);
+
   const startPayment = useCallback(async (reg, prefill) => {
-    trackEvent('payment_started', { flow: 'solo', amount: reg?.price });
+    trackEvent('payment_started', { flow: 'solo', amount: reg?.price, categories: [reg?.category] });
     const outcome = await pay({
       registrationId: reg.id,
       dueAt: reg.payment_due_at,

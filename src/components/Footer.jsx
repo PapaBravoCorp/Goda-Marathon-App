@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Check, Loader, AlertCircle, Phone } from 'lucide-react';
 import { FaInstagram, FaFacebook, FaWhatsapp } from 'react-icons/fa';
 import { subscribe } from '../utils/services/newsletter';
+import { trackEvent } from '../utils/analytics';
 import { ORGANISATION } from '../utils/constants';
 import { useSiteSettings } from '../utils/useSiteSettings';
 import { resolveSiteBranding } from '../utils/siteBranding';
@@ -28,6 +29,7 @@ export default function Footer() {
     setMessage('');
     try {
       await subscribe(email, 'footer');
+      trackEvent('newsletter_subscribed', { source: 'footer' });
       setState('done');
       setMessage('You are on the list. Watch your inbox for race news.');
       setEmail('');

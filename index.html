@@ -45,6 +45,35 @@
         }
       })();
     </script>
+
+    <!--
+      Meta Pixel (Facebook and Instagram ads). This only loads the library and
+      initialises the pixel. Every event, PageView included, is sent from
+      src/utils/analytics.js: this is a single-page app, so a PageView fired
+      here would only ever count the first page a visitor opens.
+
+      Not loaded on /admin: organisers and stats viewers are not an audience.
+      The ID is public by design; it is in every visitor's browser anyway.
+      vercel.json's Content-Security-Policy must allow connect.facebook.net and
+      www.facebook.com, or this loads nothing and fails without an error.
+
+      No <noscript> image: the site does not work without JavaScript, so the
+      only visitors it would count are bots.
+    -->
+    <script>
+      if (location.pathname.indexOf('/admin') !== 0) {
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '1690222886147383');
+      }
+    </script>
+
     <link rel="canonical" href="https://godavariexpedition.in/" />
 
     <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />

@@ -418,6 +418,94 @@ toggle on. Test and live mode have separate keys and separate webhooks.
 
 ---
 
+## Meta Pixel (Facebook and Instagram ads)
+
+Pixel ID `1690222886147383`. Tracks the whole registration funnel for ads:
+which ads bring visitors, who reaches checkout, and who pays.
+
+### What is sent
+
+| When | Meta event | Notes |
+| --- | --- | --- |
+| Any page (every route change) | `PageView` | Not on `/admin` |
+| Event details, registration, past events, results | `ViewContent` | |
+| Solo: race and category chosen (step 1) | `AddToCart` | Value after the code in the field |
+| Solo: personal details done (step 2) | `Lead` | |
+| Group: coordinator done (step 1) | `Lead` | |
+| Group: roster done (step 2) | `AddToCart` | Number of runners, list value |
+| Razorpay Checkout opened | `InitiateCheckout` | Amount owed |
+| Payment confirmed | `Purchase` | Amount paid, `eventID` `purchase_<entry id>` |
+| Entry confirmed (paid, or online payment off) | `CompleteRegistration` | Once per entry |
+| Phone, email or WhatsApp link clicked | `Contact` | Footer, policy pages, success screen |
+| Newsletter signup | `Subscribe` | |
+| Everything else passed to `trackEvent()` | custom, named in PascalCase: `CategorySelected`, `OfferAutoApplied`, `RegistrationValidationFailed`, `PaymentNotCompleted`, `ReservationCancelled`… | For funnel debugging |
+| Link to another site | custom `OutboundClick` | Destination host only |
+
+All of it lives in `src/utils/analytics.js`. The base code in `index.html` only
+loads the library and initialises the pixel; it sends nothing itself.
+
+No personal data goes in event parameters. Matching uses Meta's hashing only:
+Automatic Advanced Matching in the browser, and the server-side Purchase below.
+Date of birth, gender, emergency contact and medical details are never sent.
+
+### Setup
+
+1. **Deploy the frontend.** `vercel.json`'s Content-Security-Policy now allows
+   `connect.facebook.net` and `www.facebook.com`; without it the pixel loads
+   nothing and says nothing.
+2. **Events Manager → the pixel → Settings → Automatic advanced matching: On**,
+   with email, phone, first and last name, city, state and ZIP selected. This
+   is how the browser events are matched to people: in a single-page app the
+   pixel only takes these at start-up, before the form is filled in.
+3. **Verify** with the Meta Pixel Helper extension, or Events Manager → Test
+   events. Walk the funnel end to end with a Razorpay test payment; each row in
+   the table above should appear once. Purchase shows "Deduplicated" once the
+   server-side events are on.
+
+### Server-side Purchase (Conversions API) — optional, recommended
+
+Sends `Purchase` from the payment edge functions as well, with the runner's
+(or coordinator's) email, phone, name, city, state and PIN code SHA-256
+hashed, plus the IP, user agent and `_fbp`/`_fbc` cookies captured when
+Checkout opened. It catches the purchases the browser misses: tabs closed
+before the success screen, and visitors who block the pixel. Meta counts it
+once with the browser's Purchase through the shared `eventID`.
+
+Off until the secrets are set; nothing is collected or sent before that.
+
+1. Events Manager → the pixel → Settings → Conversions API → **Generate access
+   token**. Whoever owns the pixel's Business account has to do this.
+2. Add to `supabase/.env` and push:
+
+   ```dotenv
+   META_PIXEL_ID=1690222886147383
+   META_CAPI_ACCESS_TOKEN=EAAG...
+   # Only while testing: the code from Events Manager -> Test events
+   # META_TEST_EVENT_CODE=TEST12345
+   ```
+
+   ```bash
+   npm run supabase -- secrets set --env-file supabase/.env
+   ```
+
+3. Redeploy the three payment functions (they share the code):
+
+   ```bash
+   npm run supabase -- functions deploy razorpay-order --no-verify-jwt
+   npm run supabase -- functions deploy razorpay-verify --no-verify-jwt
+   npm run supabase -- functions deploy razorpay-webhook --no-verify-jwt
+   ```
+
+4. Make a test payment and check Events Manager → Test events for a server
+   Purchase. Then **unset `META_TEST_EVENT_CODE`** (`npm run supabase -- secrets
+   unset META_TEST_EVENT_CODE`), or real purchases keep landing as test events.
+
+Errors (an expired token, a retired API version) are logged by the functions
+as `Meta Conversions API: ...` and never affect the payment. The API version
+defaults to v26.0; override with `META_GRAPH_VERSION`.
+
+---
+
 ## Go-live checklist
 
 ### Blocking
