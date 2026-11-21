@@ -28,7 +28,7 @@ import { getPublishedGuests } from '../utils/services/guests';
 import { getPublishedPromoVideos } from '../utils/services/promoVideos';
 import { getSiteSettings } from '../utils/services/siteSettings';
 import { useSiteSettings } from '../utils/useSiteSettings';
-import { resolveSiteBranding } from '../utils/siteBranding';
+import { resolveSiteBranding, categoryCardBadge } from '../utils/siteBranding';
 import { resolveImageUrl } from '../utils/mediaUrl';
 import { levelLabel } from '../utils/categoryLevels';
 import { dealFor } from '../utils/offer';
@@ -58,26 +58,6 @@ function formatPrice(value) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency', currency: 'INR', maximumFractionDigits: 0,
   }).format(n);
-}
-
-// At or below this many places, the card's badge turns orange.
-const LOW_SLOTS = 10;
-
-/**
- * The badge in a category card's header: places left while the category has a
- * cap and is taking entries, otherwise its status. The count is the
- * database's own, unrounded: it is the limit registration will enforce, and a
- * lower figure would be a false claim. To show a smaller number, release
- * places in waves by lowering the category's max slots.
- */
-function categoryBadge(status, slotsLeft, registrationOpen) {
-  if (!registrationOpen) return { text: 'Closed', tone: 'is-closed' };
-  if (status !== 'Open') return { text: status, tone: 'is-closed' };
-  if (slotsLeft === null) return { text: 'Open', tone: 'is-open' };
-  return {
-    text: `${slotsLeft} slot${slotsLeft === 1 ? '' : 's'} left`,
-    tone: slotsLeft <= LOW_SLOTS ? 'is-low' : 'is-open',
-  };
 }
 
 export default function Home() {
@@ -340,7 +320,11 @@ export default function Home() {
                 );
                 const status = slotsLeft === 0 ? 'Sold Out' : (cat.status || 'Open');
                 const isAvailable = registrationOpen && status === 'Open';
-                const badge = categoryBadge(status, slotsLeft, registrationOpen);
+                // Admin -> Website -> Category cards decides whether the count shows.
+                const badge = categoryCardBadge({
+                  status, slotsLeft, registrationOpen,
+                  badge: branding.categoryBadge, badgeText: branding.categoryBadgeText,
+                });
                 const elevation = cat.elevation && cat.elevation !== '0m' ? cat.elevation : null;
                 const level = levelLabel(cat.level);
                 // The price with the code the form will apply, so the card and

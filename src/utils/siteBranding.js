@@ -42,6 +42,32 @@ export const DISTANCE_MODES = [
   { value: 'custom', label: 'My own text' },
 ];
 
+// Badge on the homepage category cards (0025). Whatever is picked, a category
+// with LOW_SLOTS or fewer places left shows its real count.
+export const CATEGORY_BADGES = [
+  { value: 'status', label: 'Open / Sold Out only, no count' },
+  { value: 'count', label: 'Live places left (e.g. 195 slots left)' },
+  { value: 'custom', label: 'My own text' },
+];
+export const CATEGORY_BADGE_TEXT_MAX = 24;
+export const LOW_SLOTS = 10;
+
+/**
+ * Text and colour of a category card's badge. `badge` is resolveSiteBranding()'s
+ * categoryBadge / categoryBadgeText. The count shown is the database's own,
+ * unrounded: it is the limit registration enforces.
+ */
+export function categoryCardBadge({ status, slotsLeft, registrationOpen, badge, badgeText }) {
+  if (!registrationOpen) return { text: 'Closed', tone: 'is-closed' };
+  if (status !== 'Open') return { text: status, tone: 'is-closed' };
+  const count = (n) => `${n} slot${n === 1 ? '' : 's'} left`;
+  // A nearly full category says so in every mode: that number is true and useful.
+  if (slotsLeft !== null && slotsLeft <= LOW_SLOTS) return { text: count(slotsLeft), tone: 'is-low' };
+  if (badge === 'count' && slotsLeft !== null) return { text: count(slotsLeft), tone: 'is-open' };
+  if (badge === 'custom' && badgeText) return { text: badgeText, tone: 'is-low' };
+  return { text: 'Open', tone: 'is-open' };
+}
+
 const isOption = (value, options) => options.some(o => o.value === value);
 const pick = (value, options, fallback) => (isOption(value, options) ? value : fallback);
 const text = (value) => (typeof value === 'string' && value.trim()) || null;
@@ -141,6 +167,10 @@ export function resolveSiteBranding(row) {
     ctaEffect: pick(s.hero_cta_effect, CTA_EFFECTS, 'none'),
     distancesMode: pick(s.hero_distances, DISTANCE_MODES, 'range'),
     distancesText: text(s.hero_distances_text),
+
+    // Missing before 0025: no count, which is what the organisers asked for.
+    categoryBadge: pick(s.category_badge, CATEGORY_BADGES, 'status'),
+    categoryBadgeText: text(s.category_badge_text),
 
     eventHeading: text(s.event_heading),
 

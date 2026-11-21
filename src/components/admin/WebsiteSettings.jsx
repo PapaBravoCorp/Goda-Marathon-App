@@ -14,6 +14,7 @@ import { distanceLabels, describeDistanceRange, toKm } from '../../utils/distanc
 import { ORGANISATION } from '../../utils/constants';
 import {
   LOGO_PLATES, HERO_LOGO_PLACEMENTS, CTA_EFFECTS, DISTANCE_MODES, MAX_FOOTER_CONTACTS,
+  CATEGORY_BADGES, CATEGORY_BADGE_TEXT_MAX, LOW_SLOTS,
   DEFAULT_BRAND_NAME, DEFAULT_FOOTER_ABOUT, DEFAULT_GUESTS_HEADING, DEFAULT_GUESTS_INTRO,
   DEFAULT_VIDEOS_HEADING, DEFAULT_VIDEOS_INTRO,
   cleanFooterContacts,
@@ -38,6 +39,8 @@ function toForm(row) {
     hero_cta_effect: row.hero_cta_effect || 'pulse',
     hero_distances: row.hero_distances || 'list',
     hero_distances_text: row.hero_distances_text || '',
+    category_badge: row.category_badge || 'status',
+    category_badge_text: row.category_badge_text || '',
     event_heading: row.event_heading || '',
     footer_about: row.footer_about || '',
     footer_copyright: row.footer_copyright || '',
@@ -156,6 +159,8 @@ export default function WebsiteSettings() {
   const isProcessing = processing.brand || processing.hero;
   // The videos band's heading arrives with 0021, which may run after 0020.
   const hasVideoSettings = 'videos_heading' in row;
+  // The category-card badge choice arrives with 0025.
+  const hasBadgeSettings = 'category_badge' in row;
   const isDirty = !!pendingBrand || !!pendingHero || JSON.stringify(form) !== JSON.stringify(toForm(row));
 
   const handleSave = async () => {
@@ -164,6 +169,10 @@ export default function WebsiteSettings() {
     if (cleaned.error) { setMessage({ tone: 'error', text: cleaned.error }); return; }
     if (form.hero_distances === 'custom' && !form.hero_distances_text.trim()) {
       setMessage({ tone: 'error', text: 'Type the text for the Distances box, or pick another option for it.' });
+      return;
+    }
+    if (hasBadgeSettings && form.category_badge === 'custom' && !form.category_badge_text.trim()) {
+      setMessage({ tone: 'error', text: 'Type the text for the category card badge, or pick another option for it.' });
       return;
     }
 
@@ -204,6 +213,10 @@ export default function WebsiteSettings() {
           videos_heading: orNull(form.videos_heading),
           videos_intro: orNull(form.videos_intro),
         } : {}),
+        ...(hasBadgeSettings ? {
+          category_badge: form.category_badge,
+          category_badge_text: orNull(form.category_badge_text),
+        } : {}),
       });
       saved = true;
 
@@ -238,13 +251,20 @@ export default function WebsiteSettings() {
 
   const hasHeroLogo = !!(pendingHero || form.hero_logo);
 
+  // What an open category's badge will say with the current choice.
+  const badgePreview = {
+    status: 'Open',
+    count: '195 slots left',
+    custom: form.category_badge_text.trim(),
+  }[form.category_badge];
+
   return (
     <div>
       <div className="admin-media-header">
         <div>
           <h3 style={{ margin: 0 }}>Website</h3>
           <p className="admin-field-hint" style={{ margin: '4px 0 0' }}>
-            Logo, homepage, Event Details heading and footer. Leave a field empty to keep the
+            Logo, homepage, category cards, Event Details heading and footer. Leave a field empty to keep the
             site&apos;s default; fill it in whenever the details arrive.
           </p>
         </div>
@@ -418,6 +438,46 @@ export default function WebsiteSettings() {
             </span>
           </div>
         </div>
+
+        {/* ── Category cards ───────────────────────────────────────────── */}
+        <h4 className="admin-form-section-title" style={{ marginTop: '1.75rem' }}>Category cards</h4>
+        {hasBadgeSettings ? (
+          <div className="admin-media-form-grid">
+            <div className="admin-media-form-group">
+              <label htmlFor="web-category-badge">Badge on each card</label>
+              <select id="web-category-badge" name="category_badge" value={form.category_badge} onChange={onInput}>
+                {CATEGORY_BADGES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              {form.category_badge === 'custom' && (
+                <input
+                  name="category_badge_text"
+                  value={form.category_badge_text}
+                  onChange={onInput}
+                  placeholder="Few slots left"
+                  aria-label="Category card badge text"
+                  maxLength={CATEGORY_BADGE_TEXT_MAX}
+                  style={{ marginTop: '0.5rem' }}
+                />
+              )}
+            </div>
+            <div className="admin-media-form-group">
+              <span className="admin-image-field-label" style={{ marginBottom: 4 }}>Visitors will see</span>
+              <p className="admin-website-preview-line">{badgePreview ? badgePreview.toUpperCase() : '—'}</p>
+              <span className="admin-field-hint">
+                The pill in the top-right corner of every open category on the homepage.
+                {form.category_badge === 'custom' && ' The same text on every card, in orange.'}
+                {' '}Whatever you pick, a category with {LOW_SLOTS} or fewer places left shows its real
+                count, and a full one shows Sold Out.
+              </span>
+            </div>
+          </div>
+        ) : (
+          <p className="admin-field-hint" style={{ marginTop: 0 }}>
+            The cards show &ldquo;Open&rdquo; with no count for now. To choose what they say, run{' '}
+            <code>supabase/migrations/0025_category_badge.sql</code> in the Supabase SQL editor, then
+            reload this page.
+          </p>
+        )}
 
         {/* ── Event Details page ───────────────────────────────────────── */}
         <h4 className="admin-form-section-title" style={{ marginTop: '1.75rem' }}>Event Details page</h4>
