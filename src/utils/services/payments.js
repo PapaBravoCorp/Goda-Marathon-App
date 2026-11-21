@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { getMetaBrowserContext } from '../analytics';
 
 /**
  * Online payment through Razorpay Standard Checkout.
@@ -82,8 +83,14 @@ async function invoke(name, body) {
   throw err;
 }
 
+// `meta` carries the browser's Meta Pixel identifiers so the server-side
+// Purchase (supabase/functions/_shared/metaCapi.ts) matches this visitor and
+// is deduplicated against the browser's own. It is optional and never priced.
 export const createPaymentOrder = ({ registrationId, groupId }) =>
-  invoke('razorpay-order', registrationId ? { registrationId } : { groupId });
+  invoke('razorpay-order', {
+    ...(registrationId ? { registrationId } : { groupId }),
+    meta: getMetaBrowserContext(),
+  });
 
 export const verifyPayment = (response) =>
   invoke('razorpay-verify', {

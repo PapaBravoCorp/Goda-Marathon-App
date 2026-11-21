@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Loader } from 'lucide-react';
 
 import Navbar from './components/Navbar';
@@ -7,6 +7,7 @@ import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 import ThemeProvider from './components/ThemeProvider';
+import { trackPageView } from './utils/analytics';
 
 import Home from './pages/Home';
 import EventDetails from './pages/EventDetails';
@@ -36,6 +37,18 @@ const Terms = lazy(() => import('./pages/legal/Terms'));
 const RefundPolicy = lazy(() => import('./pages/legal/RefundPolicy'));
 const Contact = lazy(() => import('./pages/legal/Contact'));
 
+/**
+ * A PageView (and, on key pages, a ViewContent) for every route, not only the
+ * first page the visitor opened. See utils/analytics.js.
+ */
+function PageViewTracker() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    trackPageView(pathname);
+  }, [pathname]);
+  return null;
+}
+
 function RouteFallback() {
   return (
     <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -50,6 +63,7 @@ export default function App() {
     <Router>
       <ThemeProvider>
         <ScrollToTop />
+        <PageViewTracker />
 
         {/* Lets a keyboard or screen-reader user jump past the navigation
             instead of tabbing through every link on every page. */}

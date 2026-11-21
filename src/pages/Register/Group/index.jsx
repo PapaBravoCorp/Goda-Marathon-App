@@ -13,7 +13,7 @@ import {
   isOnlinePaymentEnabled, savePendingPayment, loadPendingPayment, clearPendingPayment,
 } from '../../../utils/services/payments';
 import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../../utils/validation';
-import { trackEvent } from '../../../utils/analytics';
+import { trackEvent, trackConversion } from '../../../utils/analytics';
 
 import Seo from '../../../components/Seo';
 
@@ -520,7 +520,9 @@ export default function GroupRegister() {
     }
 
     setErrors({});
-    trackEvent('group_step_completed', { step: 2, participants: participants.length });
+    trackEvent('group_step_completed', {
+      step: 2, participants: participants.length, value: subtotal, categories: basket,
+    });
     setStep(3);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -561,8 +563,32 @@ export default function GroupRegister() {
     return () => { stale = true; };
   }, [paidWithoutBibs, result?.group_id]);
 
+  // Purchase / CompleteRegistration for the ad analytics, once the group is
+  // really confirmed, by whichever route. Sent once per group; see the solo
+  // form for the reasoning.
+  const groupConfirmed = result?.payment_status === 'PAID'
+    || (!!result?.group_id && result?.payment_status === 'PENDING'
+      && (!result?.payment_due_at || payPhase === 'offline'));
+  useEffect(() => {
+    if (!groupConfirmed || !result?.group_id) return;
+    const rosterCategories = (result.participants || []).map(p => p.category).filter(Boolean);
+    trackConversion({
+      id: result.group_id,
+      flow: 'group',
+      paid: result.payment_status === 'PAID',
+      value: result.total,
+      numItems: result.participant_count || rosterCategories.length || basket.length,
+      categories: rosterCategories.length ? rosterCategories : basket,
+    });
+  }, [groupConfirmed, result, basket]);
+
   const startPayment = useCallback(async (group, prefill) => {
-    trackEvent('payment_started', { flow: 'group', amount: group?.total, participants: group?.participant_count });
+    trackEvent('payment_started', {
+      flow: 'group',
+      amount: group?.total,
+      participants: group?.participant_count,
+      categories: (group?.participants || []).map(p => p.category),
+    });
     const outcome = await pay({
       groupId: group.group_id,
       dueAt: group.payment_due_at,

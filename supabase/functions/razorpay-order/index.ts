@@ -20,6 +20,7 @@ import {
   CORS, ConfigError, RazorpayError, UUID_RE,
   env, json, razorpay, serviceClient,
 } from '../_shared/razorpay.ts';
+import { browserContextNotes } from '../_shared/metaCapi.ts';
 
 /** Each status prepare_payment() can return, as an HTTP answer. */
 const REFUSALS: Record<string, [number, string]> = {
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  let body: { registrationId?: string; groupId?: string };
+  let body: { registrationId?: string; groupId?: string; meta?: { fbp?: unknown; fbc?: unknown; url?: unknown } };
   try {
     body = await req.json();
   } catch {
@@ -81,6 +82,11 @@ Deno.serve(async (req) => {
             event_id: prep.event_id,
             ...(registrationId ? { registration_id: registrationId } : { group_id: groupId }),
             reference: prep.receipt,
+            // The browser's Meta identifiers, IP and user agent, so the
+            // server-side Purchase can be matched even when the webhook
+            // confirms the payment. Empty unless the Conversions API is
+            // configured (see _shared/metaCapi.ts).
+            ...browserContextNotes(req, body.meta),
           },
         },
       });
