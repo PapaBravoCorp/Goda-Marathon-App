@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Loader, Users, RotateCcw, Tag } from 'lucide-react';
 
 import { CATEGORY_PRICING, CURRENT_EVENT, CATEGORY_RULES } from '../../utils/constants';
-import { addRegistration, isEmailRegistered, getEntryBibs } from '../../utils/services/registrations';
+import { addRegistration, isRunnerRegistered, getEntryBibs } from '../../utils/services/registrations';
 import { getEventCategories } from '../../utils/services/categories';
 import { getCurrentEvent } from '../../utils/services/events';
 import { previewCoupon, describeCouponReason } from '../../utils/services/coupons';
@@ -502,20 +502,27 @@ export default function Register() {
     // Catch a duplicate here rather than after the declarations are signed.
     setIsCheckingEmail(true);
     try {
-      const taken = await isEmailRegistered(formData.email.trim(), CURRENT_EVENT.slug);
+      // One email may cover several runners, so the check is email + name.
+      const taken = await isRunnerRegistered({
+        email: formData.email.trim(),
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+      }, CURRENT_EVENT.slug);
       if (taken) {
         // The likeliest cause with online payment on is the runner's own
         // unfinished attempt from another device. Saying so beats leaving them
         // convinced someone else has their entry.
+        const who = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+        const already = `${who} is already registered with this email for this event.`;
         const dup = {
           email: onlinePayment
-            ? `This email is already registered for this event. If you started registering recently and did not finish paying, that reservation is released after ${eventConfig?.payment_hold_minutes || 30} minutes — try again then.`
-            : 'This email is already registered for this event.',
+            ? `${already} If you started registering recently and did not finish paying, that reservation is released after ${eventConfig?.payment_hold_minutes || 30} minutes — try again then. Entering someone else? Use their name; they can share this email.`
+            : `${already} Entering someone else? Use their name; they can share this email.`,
         };
         setErrors(dup);
         focusFirstError(dup);
         trackEvent('registration_validation_failed', { step: 2, fields: ['email'], reason: 'duplicate' });
-        logEvent({ stage: 'DETAILS', status: 'FAILED', code: 'EMAIL_TAKEN', shownMessage: dup.email });
+        logEvent({ stage: 'DETAILS', status: 'FAILED', code: 'RUNNER_TAKEN', shownMessage: dup.email });
         return;
       }
     } finally {

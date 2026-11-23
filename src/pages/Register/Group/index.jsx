@@ -12,7 +12,9 @@ import { getCurrentEvent } from '../../../utils/services/events';
 import {
   isOnlinePaymentEnabled, savePendingPayment, loadPendingPayment, clearPendingPayment,
 } from '../../../utils/services/payments';
-import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../../utils/validation';
+import {
+  isValidPhone, isValidEmail, isValidPincode, calculateAge, runnerNameKey,
+} from '../../../utils/validation';
 import { trackEvent, trackConversion } from '../../../utils/analytics';
 import {
   logRegistrationEvent, flushRegistrationLog, paymentLogFields,
@@ -492,7 +494,8 @@ export default function GroupRegister() {
       next.roster = `A single group entry is limited to ${MAX_PARTICIPANTS} participants.`;
     }
 
-    // Case-insensitive, matching the unique index the database enforces.
+    // The same runner twice: email + name, case-insensitive, matching the
+    // unique index the database enforces. One email may cover several runners.
     const seen = new Map();
 
     participants.forEach((p, i) => {
@@ -504,8 +507,11 @@ export default function GroupRegister() {
       const email = p.email.trim().toLowerCase();
       if (!email) at('email', 'Enter an email address.');
       else if (!isValidEmail(email)) at('email', 'That email address does not look valid.');
-      else if (seen.has(email)) at('email', `Already used by participant ${seen.get(email) + 1}.`);
-      else seen.set(email, i);
+      else {
+        const runner = `${email} ${runnerNameKey(p.firstName, p.lastName)}`;
+        if (seen.has(runner)) at('email', `Same name and email as participant ${seen.get(runner) + 1}.`);
+        else seen.set(runner, i);
+      }
 
       if (!p.phone.trim()) at('phone', 'Enter a phone number.');
       else if (!isValidPhone(p.phone.trim())) at('phone', 'Enter a 10-digit Indian mobile number.');

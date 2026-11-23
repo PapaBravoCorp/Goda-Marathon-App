@@ -41,12 +41,13 @@ const STATUS_BADGES = {
 
 /** Plain words for the codes the forms send. Anything else shows as-is. */
 const CODE_LABELS = {
+  RUNNER_TAKEN: 'Stopped: same name and email already registered',
   EMAIL_TAKEN: 'Stopped: email already registered',
   PENDING: 'Saved, awaiting payment',
   PAID: 'Paid',
   UNKNOWN: 'Unexpected database error',
   NOT_DEPLOYED: 'Database function missing',
-  ALREADY_REGISTERED: 'Email already registered',
+  ALREADY_REGISTERED: 'Same name and email already registered',
   CATEGORY_FULL: 'Category full',
   CATEGORY_UNAVAILABLE: 'Category not open',
   CATEGORY_NOT_FOUND: 'Category no longer exists',

@@ -43,7 +43,7 @@ export default function StepDetails({
             label="Email Address"
             required
             error={errors.email}
-            hint={isCheckingEmail ? 'Checking this email…' : 'Your confirmation and race updates go here.'}
+            hint={isCheckingEmail ? 'Checking this email…' : 'Your confirmation and race updates go here. Family members can share one email.'}
           >
             {(a11y) => (
               <input {...a11y} type="email" name="email" value={formData.email}

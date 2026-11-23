@@ -32,8 +32,9 @@ const GROUP_ERRORS = {
 const PARTICIPANT_ERRORS = {
   PARTICIPANT_NAME_REQUIRED: () => 'Enter a first name.',
   PARTICIPANT_EMAIL_INVALID: () => 'Enter a valid email address.',
-  DUPLICATE_EMAIL_IN_GROUP: (d) => `${d.email} appears more than once in this group.`,
-  ALREADY_REGISTERED: (d) => `${d.email} is already registered for this event.`,
+  // One email may cover several runners (0030); these mean the same name AND email.
+  DUPLICATE_EMAIL_IN_GROUP: (d) => `${d.name} is in this group twice with the same email.`,
+  ALREADY_REGISTERED: (d) => `${d.name} is already registered for this event with ${d.email}.`,
   DOB_REQUIRED: () => 'Enter a date of birth.',
   DOB_INVALID: () => 'That date of birth does not look right.',
   CATEGORY_NOT_FOUND: (d) => `"${d.category}" is no longer available. Choose another category.`,
