@@ -3312,3 +3312,46 @@
     clip: auto;
   }
 }
+
+/* How the site code is offered (events.featured_coupon_auto_apply, 0026). */
+.admin-offer-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.admin-offer-mode-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.9rem;
+}
+
+.admin-offer-mode-head svg { color: var(--color-primary); }
+
+.admin-offer-mode-options { display: flex; flex-direction: column; gap: 0.45rem; }
+
+/* The global input rule (44px min-height, padding) is for text fields. */
+.admin-offer-mode-options .admin-inline-check { align-items: flex-start; margin: 0; color: var(--color-text-main); }
+.admin-offer-mode-options .admin-inline-check input {
+  min-height: 0;
+  padding: 0;
+  margin: 3px 0 0;
+  flex-shrink: 0;
+}
+
+/* A code's scheduled change, under its value on the card. */
+.admin-coupon-schedule {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}

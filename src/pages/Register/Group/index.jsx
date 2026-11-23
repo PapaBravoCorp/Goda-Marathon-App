@@ -5,7 +5,7 @@ import { CATEGORY_PRICING, CURRENT_EVENT, CATEGORY_RULES } from '../../../utils/
 import { createGroupRegistration } from '../../../utils/services/groupRegistrations';
 import { getEntryBibs } from '../../../utils/services/registrations';
 import { previewCoupon } from '../../../utils/services/coupons';
-import { getLinkCode, takeFreshLinkCode } from '../../../utils/offer';
+import { getLinkCode, takeFreshLinkCode, featuredAutoApply, offerDeadline } from '../../../utils/offer';
 import { useAutoOffer } from '../../../utils/useOffer';
 import { getEventCategories } from '../../../utils/services/categories';
 import { getCurrentEvent } from '../../../utils/services/events';
@@ -212,6 +212,7 @@ export default function GroupRegister() {
   const { ready: autoReady, offer: autoOffer } = useAutoOffer(
     eventConfig, dbCategories.length > 0 ? categories : [], { isGroup: true }
   );
+  const siteAutoApply = featuredAutoApply(eventConfig);
 
   /**
    * A club or company link (/register/group?code=CLUB20) fills the field in,
@@ -235,9 +236,17 @@ export default function GroupRegister() {
     }
 
     if (couponTouched) return;
-    const want = getLinkCode() || autoOffer?.code || '';
+    // The site's code is filled in only when it is set to apply automatically
+    // (Admin -> Coupons -> "Site code"); otherwise it is offered on the
+    // confirm step with an Apply button.
+    const want = getLinkCode() || (siteAutoApply ? autoOffer?.code : '') || '';
     if (couponCode !== want) setCouponCode(want);
-  }, [isLoaded, step, autoReady, autoOffer?.code, couponTouched, couponCode]);
+  }, [isLoaded, step, autoReady, autoOffer?.code, siteAutoApply, couponTouched, couponCode]);
+
+  // The site's code, offered on the confirm step when it is not applied for them.
+  const suggestedOffer = !siteAutoApply && autoOffer?.source === 'featured'
+    ? { code: autoOffer.code, label: autoOffer.summary.label, until: offerDeadline(autoOffer.summary) }
+    : null;
 
   const handleCouponChange = useCallback((value) => {
     setCouponTouched(true);
@@ -873,6 +882,7 @@ export default function GroupRegister() {
               categoryByName={categoryByName}
               couponCode={couponCode}
               onCouponChange={handleCouponChange}
+              suggestedOffer={suggestedOffer}
               quote={quote}
               isQuoting={isQuoting}
               subtotal={subtotal}

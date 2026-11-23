@@ -24,6 +24,9 @@ PORT="${PGTEST_PORT:-54329}"
 # their rollbacks run. Add to these lists when a new rollback script is added.
 ADDED_TABLES="'stats_viewers'"
 ADDED_FUNCTIONS="'can_view_stats', 'get_reg_stats', 'list_registrations_basic', 'mask_phone', 'mask_email'"
+# Columns the reversible migrations add to existing tables, as table.column.
+ADDED_COLUMNS="'events.featured_coupon_code', 'site_settings.category_badge', 'site_settings.category_badge_text',
+  'coupons.next_discount_value', 'coupons.next_discount_from', 'events.featured_coupon_auto_apply'"
 
 if [ -z "${PG_BIN:-}" ]; then
   if command -v pg_ctl >/dev/null 2>&1; then
@@ -128,6 +131,18 @@ left=$(query "
            where n.nspname = 'public' and p.proname in ($ADDED_FUNCTIONS))")
 [ "$left" = "0" ] || fail "rollbacks left $left object(s) behind"
 ok "rollbacks remove every table and function they added"
+
+left=$(query "
+  select count(*) from information_schema.columns
+   where table_schema = 'public' and table_name || '.' || column_name in ($ADDED_COLUMNS)")
+[ "$left" = "0" ] || fail "rollbacks left $left column(s) behind"
+ok "rollbacks remove every column they added"
+
+# 0026's rollback must put 0010's coupon evaluation back, not leave the
+# India-date version (which reads columns the rollback removed).
+query "select prosrc from pg_proc where proname = 'evaluate_coupon'" | grep -q "v_today" \
+  && fail "rollback left the 0026 evaluate_coupon() in place"
+ok "rollbacks restore the earlier evaluate_coupon()"
 
 [ "$(query "select count(*) from pg_proc where proname = 'is_admin'")" = "1" ] \
   || fail "a rollback removed is_admin()"

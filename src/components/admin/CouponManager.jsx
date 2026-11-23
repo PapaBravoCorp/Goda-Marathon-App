@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, X, Trash2, Edit3, Tag, Power, TrendingDown, Megaphone, Link2, Check } from 'lucide-react';
+import { Plus, X, Trash2, Edit3, Tag, Power, TrendingDown, Megaphone, Link2, Check, CalendarClock } from 'lucide-react';
 
 import { getCoupons, addCoupon, updateCoupon, deactivateCoupon, deleteCoupon } from '../../utils/services/coupons';
 import { getEventCategories } from '../../utils/services/categories';
 import { getEventById, updateEvent } from '../../utils/services/events';
 import { clearQuoteCache } from '../../utils/offer';
 import { describeSaveError } from '../../utils/services/errors';
+import { indiaToday, isoDayBefore, formatShortDate } from '../../utils/dates';
 
 const SCOPES = [
   { value: 'ANY', label: 'Anywhere', hint: 'Individual and group entries' },
@@ -19,6 +20,18 @@ const formatPrice = (p) =>
 
 const formatDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+
+/**
+ * A code's scheduled change (migration 0026), relative to today in India:
+ * null when none is set, otherwise whether it has happened yet.
+ */
+const scheduleOf = (c) => {
+  if (c?.next_discount_value == null || !c?.next_discount_from) return null;
+  return { value: Number(c.next_discount_value), from: c.next_discount_from, done: indiaToday() >= c.next_discount_from };
+};
+
+const valueText = (type, value) =>
+  type === 'PERCENT' ? `${Number(value)}%` : formatPrice(value);
 
 /**
  * Discount codes.
@@ -38,6 +51,10 @@ export default function CouponManager({ eventId }) {
   const [formError, setFormError] = useState('');
   // The one code advertised on the site (events.featured_coupon_code, 0024).
   const [featuredCode, setFeaturedCode] = useState('');
+  // How the site offers it (events.featured_coupon_auto_apply, 0026). A
+  // database without the column behaves as "apply automatically".
+  const [autoApply, setAutoApply] = useState(true);
+  const [isSavingMode, setIsSavingMode] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
   const emptyForm = {
@@ -46,6 +63,7 @@ export default function CouponManager({ eventId }) {
     min_participants: 1, scope: 'ANY',
     applies_to_categories: [],
     valid_from: '', valid_until: '',
+    next_discount_from: '', next_discount_value: '',
     max_uses: '', is_active: true,
   };
   const [formData, setFormData] = useState(emptyForm);
@@ -61,6 +79,7 @@ export default function CouponManager({ eventId }) {
       setCoupons(list);
       setCategories(cats);
       setFeaturedCode((ev?.featured_coupon_code || '').toUpperCase());
+      setAutoApply(ev?.featured_coupon_auto_apply !== false);
     } catch (err) {
       setFormError(describeSaveError(err, 'coupons'));
     } finally {
@@ -111,6 +130,26 @@ export default function CouponManager({ eventId }) {
       return;
     }
 
+    // Scheduled change: both fields or neither.
+    const nextFrom = formData.next_discount_from || '';
+    const nextValue = formData.next_discount_value === '' ? null : parseFloat(formData.next_discount_value);
+    const hasSchedule = !!nextFrom || nextValue != null;
+    if (hasSchedule) {
+      if (!nextFrom || nextValue == null) {
+        setFormError('A scheduled change needs both a date and a new value. Clear both to remove it.');
+        return;
+      }
+      if (!(nextValue > 0)) { setFormError('The scheduled value must be greater than zero.'); return; }
+      if (formData.discount_type === 'PERCENT' && nextValue > 100) {
+        setFormError('The scheduled percentage cannot exceed 100.');
+        return;
+      }
+      if (formData.valid_until && nextFrom > formData.valid_until) {
+        setFormError('The scheduled change is after the code stops working (Valid Until), so it would never happen.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
@@ -134,8 +173,15 @@ export default function CouponManager({ eventId }) {
         is_active: !!formData.is_active,
       };
 
+      // Sent only when used or already on the row, so editing a code still
+      // works on a database that has not had migration 0026 yet.
+      const before = editingId ? coupons.find(c => c.id === editingId) : null;
+      if (hasSchedule || (before && 'next_discount_value' in before)) {
+        payload.next_discount_from = hasSchedule ? nextFrom : null;
+        payload.next_discount_value = hasSchedule ? nextValue : null;
+      }
+
       if (editingId) {
-        const before = coupons.find(c => c.id === editingId);
         await updateCoupon(editingId, payload);
         // The site finds the featured code by its text, so a rename has to
         // carry over or the offer silently disappears from the site.
@@ -173,6 +219,8 @@ export default function CouponManager({ eventId }) {
       applies_to_categories: c.applies_to_categories || [],
       valid_from: c.valid_from || '',
       valid_until: c.valid_until || '',
+      next_discount_from: c.next_discount_from || '',
+      next_discount_value: c.next_discount_value ?? '',
       max_uses: c.max_uses ?? '',
       is_active: c.is_active,
     });
@@ -201,7 +249,9 @@ export default function CouponManager({ eventId }) {
     const next = isFeatured(c) ? null : c.code.toUpperCase();
     if (next && !window.confirm(
       `Show "${c.code}" on the site?\n\n` +
-      'It will be applied automatically on the registration form, and the category cards will show the price with it. ' +
+      (autoApply
+        ? 'It will be applied automatically on the registration form, and the category cards will show the price with it. '
+        : 'It will be shown on the registration form with an Apply button, and the category cards will show the price with it. ') +
       'Anyone can see and use this code.' +
       (featuredCode ? `\n\nThis replaces "${featuredCode}".` : '')
     )) return;
@@ -213,6 +263,24 @@ export default function CouponManager({ eventId }) {
       setFormError('');
     } catch (err) {
       setFormError(describeSaveError(err, 'site offer settings'));
+    }
+  };
+
+  /** Apply the site's code automatically, or show it for the runner to apply. */
+  const handleModeChange = async (next) => {
+    if (next === autoApply || isSavingMode) return;
+    // Shown at once, put back if the save fails.
+    const previous = autoApply;
+    setAutoApply(next);
+    setIsSavingMode(true);
+    try {
+      await updateEvent(eventId, { featured_coupon_auto_apply: next });
+      setFormError('');
+    } catch (err) {
+      setAutoApply(previous);
+      setFormError(describeSaveError(err, 'site code settings'));
+    } finally {
+      setIsSavingMode(false);
     }
   };
 
@@ -270,10 +338,23 @@ export default function CouponManager({ eventId }) {
     }
   };
 
-  const describeValue = (c) =>
-    c.discount_type === 'PERCENT'
-      ? `${Number(c.discount_value)}% off${c.max_discount ? ` (max ${formatPrice(c.max_discount)})` : ''}`
-      : `${formatPrice(c.discount_value)} off`;
+  // What the code is worth today: after a scheduled change, the new value.
+  const describeValue = (c) => {
+    const schedule = scheduleOf(c);
+    const value = schedule?.done ? schedule.value : c.discount_value;
+    return c.discount_type === 'PERCENT'
+      ? `${Number(value)}% off${c.max_discount ? ` (max ${formatPrice(c.max_discount)})` : ''}`
+      : `${formatPrice(value)} off`;
+  };
+
+  const describeSchedule = (c) => {
+    const schedule = scheduleOf(c);
+    if (!schedule) return null;
+    const from = formatShortDate(schedule.from);
+    return schedule.done
+      ? `Was ${valueText(c.discount_type, c.discount_value)} until ${formatShortDate(isoDayBefore(schedule.from))}; ${valueText(c.discount_type, schedule.value)} since ${from}`
+      : `${valueText(c.discount_type, c.discount_value)} until ${formatShortDate(isoDayBefore(schedule.from))}, then ${valueText(c.discount_type, schedule.value)} from ${from}`;
+  };
 
   const describeRules = (c) => {
     const rules = [];
@@ -290,7 +371,8 @@ export default function CouponManager({ eventId }) {
     return rules;
   };
 
-  const isExpired = (c) => c.valid_until && new Date(c.valid_until) < new Date(new Date().toDateString());
+  // India dates, as the database checks them (0026).
+  const isExpired = (c) => !!c.valid_until && c.valid_until < indiaToday();
   const isExhausted = (c) => c.max_uses != null && c.uses >= c.max_uses;
 
   const totalGiven = coupons.reduce((sum, c) => sum + (c.discount_given || 0), 0);
@@ -398,6 +480,38 @@ export default function CouponManager({ eventId }) {
             </div>
 
             <div className="admin-media-form-group">
+              <label>Scheduled Change — From</label>
+              <input
+                name="next_discount_from" type="date"
+                value={formData.next_discount_from} onChange={handleInput}
+              />
+              <span className="admin-field-hint">
+                From 00:00 India time on this date, the code is worth the value on the right.
+              </span>
+            </div>
+
+            <div className="admin-media-form-group">
+              <label>{formData.discount_type === 'PERCENT' ? 'Scheduled Change — New %' : 'Scheduled Change — New Amount (₹)'}</label>
+              <input
+                name="next_discount_value" type="number" step="1" min="1"
+                value={formData.next_discount_value} onChange={handleInput}
+                placeholder={formData.discount_type === 'PERCENT' ? 'e.g. 10' : 'e.g. 100'}
+              />
+              <span className="admin-field-hint">
+                Same code, so posters stay right. Entries already made keep their discount.
+                Leave both blank for no change.
+              </span>
+              {formData.next_discount_from && formData.next_discount_value !== ''
+                && formData.next_discount_from <= indiaToday() && (
+                <span className="admin-field-hint admin-field-hint--warn">
+                  Already in effect: the code is worth {formData.next_discount_value}
+                  {formData.discount_type === 'PERCENT' ? '%' : ' ₹'} now. To schedule another change,
+                  put {formData.next_discount_value} in the discount above, then enter the new date and value here.
+                </span>
+              )}
+            </div>
+
+            <div className="admin-media-form-group">
               <label>Maximum Uses</label>
               <input
                 name="max_uses" type="number" min="1"
@@ -497,11 +611,40 @@ export default function CouponManager({ eventId }) {
             </p>
           )}
 
-          <p className="admin-field-hint" style={{ margin: '0 0 1rem' }}>
-            <strong>Show on site</strong> applies one code automatically on the registration
-            form and shows its prices on the category cards. <strong>Copy link</strong> gives
-            a link that fills in any code for whoever opens it, for a club or a company.
-          </p>
+          <div className="admin-offer-mode glass">
+            <div className="admin-offer-mode-head">
+              <Megaphone size={16} aria-hidden="true" />
+              <strong>Site code{featuredCode ? `: ${featuredCode}` : ''}</strong>
+              {!featuredCode && (
+                <span className="admin-field-hint" style={{ margin: 0 }}>
+                  none chosen — use <em>Show on site</em> on a code below
+                </span>
+              )}
+            </div>
+            <div className="admin-offer-mode-options" role="radiogroup" aria-label="How the site code is offered">
+              <label className="admin-inline-check">
+                <input
+                  type="radio" name="offer-mode"
+                  checked={autoApply} disabled={isSavingMode}
+                  onChange={() => handleModeChange(true)}
+                />
+                <span><strong>Apply automatically</strong> — runners get it without doing anything.</span>
+              </label>
+              <label className="admin-inline-check">
+                <input
+                  type="radio" name="offer-mode"
+                  checked={!autoApply} disabled={isSavingMode}
+                  onChange={() => handleModeChange(false)}
+                />
+                <span><strong>Show only</strong> — the form shows the code with an Apply button; the runner applies it.</span>
+              </label>
+            </div>
+            <p className="admin-field-hint" style={{ margin: 0 }}>
+              <strong>Copy link</strong> on any code gives a link (for a club, company or ambassador)
+              that applies that code for whoever opens it — in either mode, and in place of the site code.
+              One code per entry: a runner&apos;s own code replaces the site code, never adds to it.
+            </p>
+          </div>
 
           <div className="admin-cat-grid">
             {coupons.map(c => {
@@ -519,7 +662,9 @@ export default function CouponManager({ eventId }) {
                       {isFeatured(c) && (
                         <span className="admin-coupon-onsite">
                           <Megaphone size={12} aria-hidden="true" />
-                          {dead ? 'Chosen for the site, but not showing' : 'Shown on site'}
+                          {dead
+                            ? 'Chosen for the site, but not showing'
+                            : `Shown on site · ${autoApply ? 'applied automatically' : 'runner taps Apply'}`}
                         </span>
                       )}
                       {c.description && (
@@ -537,6 +682,11 @@ export default function CouponManager({ eventId }) {
 
                   <div className="admin-cat-card-body">
                     <div className="admin-cat-price">{describeValue(c)}</div>
+                    {describeSchedule(c) && (
+                      <span className="admin-coupon-schedule">
+                        <CalendarClock size={12} aria-hidden="true" /> {describeSchedule(c)}
+                      </span>
+                    )}
 
                     <div className="admin-coupon-rules">
                       {describeRules(c).map(r => (

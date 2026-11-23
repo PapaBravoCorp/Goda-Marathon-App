@@ -12,7 +12,7 @@ import {
 } from '../../utils/services/payments';
 import { isValidPhone, isValidEmail, isValidPincode, calculateAge } from '../../utils/validation';
 import { trackEvent, trackConversion } from '../../utils/analytics';
-import { normaliseCode, takeFreshLinkCode, dealFor } from '../../utils/offer';
+import { normaliseCode, takeFreshLinkCode, dealFor, featuredAutoApply, offerDeadline } from '../../utils/offer';
 import { useAutoOffer, useCodeQuotes } from '../../utils/useOffer';
 
 import Seo from '../../components/Seo';
@@ -198,11 +198,15 @@ export default function Register() {
   const typed = useCodeQuotes(formData.couponCode, offerEventId, offerCategories);
 
   const autoCode = autoOffer?.code || '';
+  // A link code is always applied. The site's own code is applied, or only
+  // offered with an Apply button, as set in Admin -> Coupons -> "Site code".
+  const autoApply = autoOffer?.source === 'link' || featuredAutoApply(eventConfig);
   const currentCode = normaliseCode(formData.couponCode);
   // An untouched field is about to hold the offer (the effect below writes it
   // in), so it is treated as holding it already: the cards go straight to the
   // discounted price instead of showing the list price for a moment first.
-  const showingAuto = !!autoCode && (couponTouched ? currentCode === autoCode : true);
+  // When the offer is only shown, the field is empty until the runner applies it.
+  const showingAuto = !!autoCode && ((couponTouched || !autoApply) ? currentCode === autoCode : true);
   // The auto offer's own quotes are already in hand, so the cards do not wait
   // for the debounced lookup when the field holds that code.
   const activeQuotes = showingAuto ? autoOffer.quotes : typed.quotes;
@@ -239,18 +243,25 @@ export default function Register() {
     }
 
     if (couponTouched) return;
-    if (formData.couponCode !== autoCode) {
-      setFormData(prev => ({ ...prev, couponCode: autoCode }));
-      if (autoCode) trackEvent('offer_auto_applied', { code: autoCode, source: autoOffer?.source });
+    // Show-only: an untouched field stays empty (and a code auto-applied on an
+    // earlier visit, before the mode changed, is taken back out).
+    const want = autoApply ? autoCode : '';
+    if (formData.couponCode !== want) {
+      setFormData(prev => ({ ...prev, couponCode: want }));
+      if (want) trackEvent('offer_auto_applied', { code: want, source: autoOffer?.source });
     }
-  }, [isLoaded, step, offerCategories.length, autoReady, autoCode, autoOffer?.source, couponTouched, formData.couponCode]);
+  }, [isLoaded, step, offerCategories.length, autoReady, autoCode, autoApply, autoOffer?.source, couponTouched, formData.couponCode]);
 
   const applyOffer = useCallback(() => {
     if (!autoCode) return;
-    setCouponTouched(false);
+    // Auto mode: untouched, so the field keeps following the site code.
+    // Show-only: the runner chose it, so it is kept like a typed code.
+    setCouponTouched(!autoApply);
     setFormData(prev => ({ ...prev, couponCode: autoCode }));
     trackEvent('offer_applied_from_strip', { code: autoCode });
-  }, [autoCode]);
+  }, [autoCode, autoApply]);
+
+  const offerUntil = offerDeadline(autoOffer?.summary);
 
   // What the code field says about the code in it. Nothing while it is being
   // checked, and nothing for a network failure: the confirm step quotes again.
@@ -793,7 +804,8 @@ export default function Register() {
               <Tag size={16} aria-hidden="true" />
               <span>
                 <strong>
-                  {autoOffer.summary.label} on {autoOffer.summary.appliesToAll ? 'all categories' : 'selected categories'}.
+                  {autoOffer.summary.label} on {autoOffer.summary.appliesToAll ? 'all categories' : 'selected categories'}
+                  {offerUntil ? ` ${offerUntil}` : ''}.
                 </strong>{' '}
                 Code <span className="reg-offer-code">{autoCode}</span> {couponTouched ? 'is applied.' : 'applied automatically.'}
               </span>
@@ -803,7 +815,8 @@ export default function Register() {
               <Tag size={16} aria-hidden="true" />
               <span>
                 Code <span className="reg-offer-code">{autoCode}</span> gives {autoOffer.summary.label.toLowerCase()}
-                {autoOffer.summary.appliesToAll ? ' on all categories' : ' on selected categories'}.
+                {autoOffer.summary.appliesToAll ? ' on all categories' : ' on selected categories'}
+                {offerUntil ? ` ${offerUntil}` : ''}.
               </span>
               <button type="button" className="reg-offer-apply" onClick={applyOffer}>Apply</button>
             </p>

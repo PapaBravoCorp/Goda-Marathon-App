@@ -113,6 +113,8 @@ create table if not exists public.events (
   location          text,
   description       text,
   registration_open boolean not null default true,
+  -- Read by create_registration(); added in the dashboard, not by a migration.
+  last_registration_date date,
   created_at        timestamptz not null default now()
 );
 
@@ -123,6 +125,8 @@ create table if not exists public.event_categories (
   distance   text,
   price      numeric(10, 2) not null default 0,
   max_slots  integer,
+  -- Read by create_registration(); added in the dashboard, not by a migration.
+  min_age    integer,
   status     text default 'Open',
   display_order integer not null default 0,
   created_at timestamptz not null default now()

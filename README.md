@@ -103,6 +103,7 @@ Apply them **in order** in the Supabase SQL editor, or with
 | `0022_stats_viewers.sql` | View-only **stats viewer** logins: `stats_viewers`, `can_view_stats()`, `get_reg_stats()` (counts only). Changes nothing existing. Rollback: `supabase/rollbacks/0022_stats_viewers.down.sql` |
 | `0025_category_badge.sql` | What the badge on the homepage category cards says (`site_settings.category_badge`): Open with no count (default), the live places-left count, or your own text. Set it in Admin → Website → **Category cards**. 10 or fewer places left always shows the real count. Changes nothing existing. Rollback: `supabase/rollbacks/0025_category_badge.down.sql` |
 | `0024_featured_coupon.sql` | One discount code per event shown on the site (`events.featured_coupon_code`): applied automatically on the registration form and priced on the category cards. Set it in Admin → Coupons → **Show on site**. Changes nothing existing. Rollback: `supabase/rollbacks/0024_featured_coupon.down.sql` |
+| `0026_coupon_schedule_and_offer_mode.sql` | Offer settings without code changes: a **scheduled change** on any code (`coupons.next_discount_value` / `next_discount_from`, e.g. GODA 20% until 29 Nov, 10% from 30 Nov), and whether the site code is **applied automatically or only shown** with an Apply button (`events.featured_coupon_auto_apply`). Coupon dates now follow India time. Replaces `evaluate_coupon()`; entries already made are not re-priced. Rollback: `supabase/rollbacks/0026_coupon_schedule_and_offer_mode.down.sql` |
 | `0023_runner_lookup.sql` | Read-only runner list for stats viewers: `list_registrations_basic()`, with phone and email masked in the database (`mask_phone()`, `mask_email()`). Changes nothing existing. Rollback: `supabase/rollbacks/0023_runner_lookup.down.sql` |
 
 0009 is not optional. 0006 removed the old permissive policies by name, which
@@ -591,6 +592,24 @@ would strand bibs already issued, and refuses a typed bib outside the runner's
 series. Bibs were once `Math.random()` over 9000 values, where a collision
 becomes more likely than not by about the 112th entry; 0007 replaced that with
 a per-event counter, which 0017 replaces in turn.
+
+**Discounts are run from Admin → Coupons, not from code** (0010, 0024, 0026).
+Every common change is a form edit that takes effect immediately:
+
+| To do this | In Admin → Coupons |
+|---|---|
+| Change what a code is worth | **Edit** → Percentage / Amount |
+| Change it on a date (e.g. 20% → 10% after 29 Nov) | **Edit** → Scheduled Change: from date + new value. Starts 00:00 India time; same code, so posters stay right |
+| End a code on a date | **Edit** → Valid Until (India date, works all that day) |
+| Pick the code advertised on the site | **Show on site** on that code |
+| Apply the site code for runners, or only show it with an Apply button | **Site code** → Apply automatically / Show only |
+| Give a club, company or ambassador their own rate | **New Code**, then **Copy link** — the link applies that code in either mode, in place of the site code |
+| See which codes bring entries | Redemptions / runners / given on each code |
+| Stop a code | **Deactivate** |
+
+One code per entry: a code the runner types or arrives with replaces the site
+code, it never adds to it. Entries keep the discount they were given; changing
+a code only affects entries made after the change.
 
 **Entry prices** are read from `event_categories` inside the database. The
 browser used to send the price, so anyone could enter any category for zero.
