@@ -21,3 +21,11 @@ export const calculateAge = (dob) => {
   }
   return a;
 };
+
+/**
+ * A runner's name as the database compares it (runner_name_key(), 0030):
+ * first and last joined, lower-cased, runs of whitespace collapsed. One email
+ * may cover several runners, so a runner is the email together with this.
+ */
+export const runnerNameKey = (firstName, lastName) =>
+  `${firstName || ''} ${lastName || ''}`.replace(/\s+/g, ' ').trim().toLowerCase();

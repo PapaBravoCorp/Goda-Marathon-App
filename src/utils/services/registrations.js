@@ -68,17 +68,21 @@ export const getRegistrations = async (eventSlug, options = {}) => {
 };
 
 /**
- * Has this email already entered?
+ * Has this runner already entered? A runner is the email together with the
+ * name: one email may cover several runners, such as a parent entering their
+ * children (migration 0030).
  *
  * Runs as a database function that answers yes or no and nothing else, so the
  * check cannot be turned into a way to enumerate who has signed up.
  * create_registration() enforces it again at insert time; this exists so the
  * runner hears about it on the details step rather than after signing waivers.
  */
-export const isEmailRegistered = async (email, eventSlug) => {
+export const isRunnerRegistered = async ({ email, firstName, lastName }, eventSlug) => {
   try {
-    const { data, error } = await supabase.rpc('is_email_registered', {
+    const { data, error } = await supabase.rpc('is_runner_registered', {
       p_email: email,
+      p_first_name: firstName,
+      p_last_name: lastName,
       p_event_id: eventSlug,
     });
     if (error) throw error;
@@ -103,7 +107,8 @@ const REGISTRATION_ERRORS = {
   UNDER_MIN_AGE: 'You do not meet the minimum age for that category.',
   WAIVERS_REQUIRED: 'Please accept all declarations before submitting.',
   EMAIL_INVALID: 'That email address does not look valid.',
-  ALREADY_REGISTERED: 'This email is already registered for this event.',
+  NAME_REQUIRED: 'Please enter your first name.',
+  ALREADY_REGISTERED: 'A runner with this name is already registered with this email for this event.',
 };
 
 /**
