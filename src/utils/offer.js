@@ -26,6 +26,15 @@ import { isoDayBefore, formatShortDate } from './dates';
  */
 export const featuredAutoApply = (event) => event?.featured_coupon_auto_apply !== false;
 
+/**
+ * Whether the registration form will apply this offer by itself: always for a
+ * link code, and for the site's code only in auto-apply mode. Anywhere a price
+ * is shown, the discounted figure is the price only when this is true;
+ * otherwise it is what the runner gets after tapping Apply.
+ */
+export const offerIsApplied = (offer, event) =>
+  !!offer && (offer.source === 'link' || featuredAutoApply(event));
+
 const LINK_KEY = 'goda.linkCode';
 const LINK_FRESH_KEY = 'goda.linkCodeFresh';
 
