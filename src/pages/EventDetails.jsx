@@ -4,7 +4,7 @@ import { Button } from '../components/Button';
 import { MapPin, Calendar, Clock, Award, Info, Loader } from 'lucide-react';
 import { getCurrentEvent } from '../utils/services/events';
 import { getEventCategories } from '../utils/services/categories';
-import { dealFor, featuredAutoApply, offerDeadline } from '../utils/offer';
+import { dealFor, featuredAutoApply, offerDeadline, offerIsApplied } from '../utils/offer';
 import { useAutoOffer } from '../utils/useOffer';
 import { getEventSchedule } from '../utils/services/schedule';
 import { getSiteSettings } from '../utils/services/siteSettings';
@@ -295,6 +295,14 @@ export default function EventDetails() {
                       {cat.name}
                       {cat.price != null && (() => {
                         const deal = dealFor(offer?.quotes, cat.name, cat.price);
+                        // Show-only mode: list price first, the code's price as a hint.
+                        if (deal && !offerIsApplied(offer, e)) {
+                          return (
+                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                              {' — '}{formatPrice(cat.price)} ({formatPrice(deal.price)} with code {deal.code})
+                            </span>
+                          );
+                        }
                         return deal ? (
                           <span style={{ fontSize: '0.8rem' }}>
                             {' — '}

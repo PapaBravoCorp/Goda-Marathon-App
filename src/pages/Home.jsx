@@ -31,7 +31,7 @@ import { useSiteSettings } from '../utils/useSiteSettings';
 import { resolveSiteBranding, categoryCardBadge } from '../utils/siteBranding';
 import { resolveImageUrl } from '../utils/mediaUrl';
 import { levelLabel } from '../utils/categoryLevels';
-import { dealFor } from '../utils/offer';
+import { dealFor, offerIsApplied } from '../utils/offer';
 import { useAutoOffer } from '../utils/useOffer';
 import { CURRENT_EVENT } from '../utils/constants';
 import { formatHeroDate, buildCountdownTarget } from '../utils/dates';
@@ -75,6 +75,9 @@ export default function Home() {
   // The code the registration form applies unasked (a link's, or the event's
   // featured one), priced per category. Null when there is none.
   const { offer } = useAutoOffer(event, categories);
+  // Show-only mode (Admin -> Coupons -> Site code): the card leads with the
+  // list price, which is what the form shows until the runner applies the code.
+  const offerApplied = offerIsApplied(offer, event);
 
   useEffect(() => {
     let cancelled = false;
@@ -360,7 +363,14 @@ export default function Home() {
                         </div>
                       )}
 
-                      {deal ? (
+                      {deal && !offerApplied ? (
+                        <div className="cat-card-price has-offer">
+                          <span>{formatPrice(cat.price)}</span>
+                          <span className="cat-card-offer">
+                            {formatPrice(deal.price)} with code {deal.code} at checkout
+                          </span>
+                        </div>
+                      ) : deal ? (
                         <div className="cat-card-price has-offer">
                           <s className="cat-card-mrp">
                             <span className="sr-only">Was </span>{formatPrice(deal.list)}
@@ -417,7 +427,7 @@ export default function Home() {
                       {isAvailable ? (
                         <Link to="/register" style={{ display: 'block' }}>
                           <Button variant="primary" style={{ width: '100%' }}>
-                            Register &middot; {formatPrice(deal ? deal.price : cat.price)}
+                            Register &middot; {formatPrice(deal && offerApplied ? deal.price : cat.price)}
                           </Button>
                         </Link>
                       ) : (
