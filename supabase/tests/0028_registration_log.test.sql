@@ -1,4 +1,4 @@
--- Tests for 0025_registration_log.sql (log_registration_event and
+-- Tests for 0028_registration_log.sql (log_registration_event and
 -- admin_registration_log). Same pattern as 0022/0023: each block acts as one
 -- caller, then rolls back.
 
