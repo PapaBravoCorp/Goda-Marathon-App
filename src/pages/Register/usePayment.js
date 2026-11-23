@@ -81,7 +81,7 @@ export default function usePayment() {
       };
       setPhase(phaseFor[err.code] || 'error');
       setMessage(err.message);
-      return { outcome: 'error', code: err.code };
+      return { outcome: 'error', code: err.code, message: err.message, error: err };
     }
   }, [apply]);
 
