@@ -111,3 +111,33 @@ export function buildCountdownTarget(dateStr, flagOff) {
 
   return `${dateStr}T${String(hours).padStart(2, '0')}:${minutes}:00`;
 }
+
+/* ── India dates ─────────────────────────────────────────────────────────── */
+
+/**
+ * Today's date in India as YYYY-MM-DD, whatever the browser's timezone.
+ *
+ * Coupon dates are India dates (migration 0026 checks them against India
+ * time), so the admin panel and the site compare against the same day the
+ * database does.
+ */
+export function indiaToday() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+}
+
+/** "2026-11-30" → "2026-11-29". */
+export function isoDayBefore(value) {
+  if (!ISO_DATE.test(String(value || ''))) return '';
+  const [y, m, d] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d - 1));
+  return date.toISOString().slice(0, 10);
+}
+
+/** "2026-11-29" → "29 Nov", for deadlines on the site and in the admin. */
+export function formatShortDate(value) {
+  if (!ISO_DATE.test(String(value || ''))) return '';
+  const [y, m, d] = value.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}

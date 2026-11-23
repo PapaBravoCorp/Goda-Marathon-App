@@ -4,7 +4,7 @@ import { Button } from '../components/Button';
 import { MapPin, Calendar, Clock, Award, Info, Loader } from 'lucide-react';
 import { getCurrentEvent } from '../utils/services/events';
 import { getEventCategories } from '../utils/services/categories';
-import { dealFor } from '../utils/offer';
+import { dealFor, featuredAutoApply, offerDeadline } from '../utils/offer';
 import { useAutoOffer } from '../utils/useOffer';
 import { getEventSchedule } from '../utils/services/schedule';
 import { getSiteSettings } from '../utils/services/siteSettings';
@@ -322,7 +322,11 @@ export default function EventDetails() {
 
                 {offer && e.registration_open && (
                   <p style={{ fontSize: '0.85rem', marginBottom: '12px', textAlign: 'center', color: 'var(--color-primary-text)', fontWeight: 600 }}>
-                    {offer.summary.label} with code {offer.code}, applied automatically when you register.
+                    {offer.summary.label} with code {offer.code}
+                    {offerDeadline(offer.summary) ? ` ${offerDeadline(offer.summary)}` : ''}
+                    {offer.source === 'link' || featuredAutoApply(e)
+                      ? '. Applied automatically when you register.'
+                      : '. Enter it when you register.'}
                   </p>
                 )}
 

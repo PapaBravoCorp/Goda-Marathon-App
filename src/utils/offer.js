@@ -1,4 +1,5 @@
 import { previewCoupon } from './services/coupons';
+import { isoDayBefore, formatShortDate } from './dates';
 
 /**
  * The discount code a visitor gets without typing it.
@@ -15,6 +16,15 @@ import { previewCoupon } from './services/coupons';
  * a card cannot advertise a price the checkout will not honour. A code that is
  * inactive, expired or used up quotes as invalid and is simply not shown.
  */
+
+/**
+ * Whether the event's featured code is applied for the runner (true) or only
+ * shown with an Apply button (false). Admin -> Coupons -> "Site code"
+ * (events.featured_coupon_auto_apply, migration 0026). A database without
+ * the column reads as true, the behaviour before 0026. Link codes are applied
+ * either way.
+ */
+export const featuredAutoApply = (event) => event?.featured_coupon_auto_apply !== false;
 
 const LINK_KEY = 'goda.linkCode';
 const LINK_FRESH_KEY = 'goda.linkCodeFresh';
@@ -163,12 +173,36 @@ export function summariseQuotes(code, quotes) {
   else if (first.discount_type === 'FLAT') label = `${rupees(value)} off`;
   else label = `Up to ${rupees(Math.max(...good.map(q => Number(q.discount))))} off`;
 
+  // The last day at this rate, and what comes after, for "until 29 Nov".
+  // A scheduled change (0026) ends the current rate the day before it starts;
+  // otherwise the code's own end date does.
+  const nextValue = Number(first.next_discount_value) || 0;
+  const until = first.next_discount_from
+    ? isoDayBefore(first.next_discount_from)
+    : (first.valid_until || '');
+  let thenLabel = '';
+  if (first.next_discount_from && nextValue > 0) {
+    thenLabel = first.discount_type === 'PERCENT' ? `${nextValue}% off` : `${rupees(nextValue)} off`;
+  }
+
   return {
     code: first.code || code,
     label,
     description: first.description || '',
     appliesToAll: good.length === all.length,
+    until,
+    thenLabel,
   };
+}
+
+/**
+ * The deadline in words, or '' when the offer has none:
+ * "until 29 Nov" or "until 29 Nov, then 10% off".
+ */
+export function offerDeadline(summary) {
+  const day = formatShortDate(summary?.until);
+  if (!day) return '';
+  return summary.thenLabel ? `until ${day}, then ${summary.thenLabel}` : `until ${day}`;
 }
 
 /** The discounted price for one category under a set of quotes, or null. */

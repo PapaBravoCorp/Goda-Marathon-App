@@ -26,7 +26,7 @@ const DECLARATIONS = [
  */
 export default function StepGroupConfirm({
   captain, participants, categoryByName,
-  couponCode, onCouponChange, quote, isQuoting,
+  couponCode, onCouponChange, quote, isQuoting, suggestedOffer = null,
   subtotal, discount, total,
   waiversAccepted, authorityConfirmed, onWaiversChange, onAuthorityChange,
   errors, onBack, onSubmit, isSubmitting, submitError, formatCurrency,
@@ -132,6 +132,19 @@ export default function StepGroupConfirm({
             )}
           </div>
         </div>
+
+        {suggestedOffer && !couponCode.trim() && (
+          <p className="reg-offer reg-offer--idle">
+            <Tag size={16} aria-hidden="true" />
+            <span>
+              Code <span className="reg-offer-code">{suggestedOffer.code}</span> gives{' '}
+              {suggestedOffer.label.toLowerCase()}{suggestedOffer.until ? ` ${suggestedOffer.until}` : ''}.
+            </span>
+            <button type="button" className="reg-offer-apply" onClick={() => onCouponChange(suggestedOffer.code)}>
+              Apply
+            </button>
+          </p>
+        )}
 
         <p className="reg-hint grp-coupon-hint">
           Optional. Group discounts often need a minimum number of participants —
